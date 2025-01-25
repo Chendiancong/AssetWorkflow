@@ -1,0 +1,16 @@
+{
+  "name": "com.cdc-single.bundle-workflow",
+  "version": "1.0.0",
+  "displayName": "AssetBundle WorkFlow",
+  "description": "a simple but useful solution for using AssetBundle in Unity",
+  "unity": "2022.3.17",
+  "keywords": [
+    "assetbundle",
+    "workflow",
+    "assetbundle workflow"
+  ],
+  "author": {
+    "name": "cdc-single",
+    "email": "diancongchen@outlook.com"
+  }
+}
