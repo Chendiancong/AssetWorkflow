@@ -1,7 +1,7 @@
 using UnityEditor;
 using UnityEngine;
 
-namespace cdc.BundleWorkFlow
+namespace cdc.BundleWorkFlow.Editor
 {
     internal class BuildSettingAsset : ScriptableObject
     {

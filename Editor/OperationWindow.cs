@@ -1,7 +1,7 @@
 using UnityEditor;
 using UnityEngine;
 
-namespace cdc.BundleWorkFlow
+namespace cdc.BundleWorkFlow.Editor
 {
     internal class OperationWindow : EditorWindow
     {
@@ -32,7 +32,7 @@ namespace cdc.BundleWorkFlow
 
             EditorGUILayout.BeginHorizontal();
             if (GUILayout.Button(m_buildContent))
-                Builder.Build();
+                Builder.NormalBuild();
             if (GUILayout.Button(m_cleanContent))
                 Builder.Clean();
             EditorGUILayout.EndHorizontal();
