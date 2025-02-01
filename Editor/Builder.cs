@@ -1,7 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.IO;
-using PlasticGui.Diff.Annotate;
+using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using UnityEditor;
 using UnityEngine;
 
@@ -18,7 +21,6 @@ namespace cdc.BundleWorkFlow.Editor
             InternalBuild(false);
             InternalPostBuild();
             BuilderProcessorAttribute.ExecutePhase(BuilderProcessorPhase.PostBuild);
-            // helper.CollectAssets(BuildSetting.RootPath);
         }
 
         [MenuItem("Bundle Workflow/Clean", priority = 201)]
@@ -71,7 +73,8 @@ namespace cdc.BundleWorkFlow.Editor
         private static void InternalBuild(bool forceRebuild)
         {
             var platform = EditorUserBuildSettings.activeBuildTarget;
-            var builds = helper.CollectAssets(UniPath.BundleRootPath);
+            helper.BeforeBuild();
+            helper.CollectAssets(UniPath.BundleRootPath);
             var targetPath = helper.OutputPath;
             if (!Directory.Exists(targetPath))
                 Directory.CreateDirectory(targetPath);
@@ -83,20 +86,37 @@ namespace cdc.BundleWorkFlow.Editor
 
             BuildPipeline.BuildAssetBundles(
                 targetPath,
-                builds.ToArray(),
+                new List<AssetBundleBuild>(helper.AllBuilds).ToArray(),
                 buildOption,
                 platform
             );
+
+            helper.GenerateAssetFileMap();
+            helper.GenerateAssetFileVersions();
+
             AssetDatabase.Refresh();
         }
 
         public class Helper
         {
+            private List<AssetBundleBuild> m_builds = new List<AssetBundleBuild>();
             public string OutputPath => Application.streamingAssetsPath;
-            public List<AssetBundleBuild> CollectAssets(string rootPath)
+            public ReadOnlyCollection<AssetBundleBuild> AllBuilds { get; private set; }
+
+            public Helper()
             {
-                var list = new List<AssetBundleBuild>();
+                AllBuilds = new ReadOnlyCollection<AssetBundleBuild>(m_builds);
+            }
+
+            public void BeforeBuild()
+            {
+                m_builds.Clear();
+            }
+
+            public void CollectAssets(string rootPath)
+            {
                 var assetDic = new Dictionary<string, List<string>>();
+                var list = m_builds;
                 UniPath.WalkDataPath(
                     rootPath,
                     (dInfo, fInfo) =>
@@ -123,16 +143,53 @@ namespace cdc.BundleWorkFlow.Editor
                         .ToArray();
                     list.Add(build);
                 }
-                return list;
             }
 
-            public void GenerateAddressableMap(Dictionary<string, string> dic)
+            public void GenerateAssetFileMap()
             {
+                var dic = new Dictionary<string, string>();
+                foreach (AssetBundleBuild build in m_builds)
+                {
+                    foreach (string assetName in build.assetNames)
+                        dic[assetName] = build.assetBundleName;
+                }
+
+                var sb = new StringBuilder();
+                foreach (KeyValuePair<string, string> kv in dic)
+                    sb.AppendLine($"{kv.Key}:{kv.Value}");
+
+                string filePath = Path.Combine(OutputPath, "AssetMap.txt");
+                using (var writer = new StreamWriter(filePath))
+                {
+                    writer.Write(sb.ToString());
+                }
+            }
+
+            public void GenerateAssetFileVersions()
+            {
+                string filePath = Path.Combine(OutputPath, "Version.txt");
+                if (File.Exists(filePath))
+                    File.Delete(filePath);
+                var sb = new StringBuilder();
                 UniPath.WalkDirectory(
                     OutputPath,
                     (di, fi) => {
+                        using (FileStream stream = File.OpenRead(fi.FullName))
+                        {
+                            using (MD5 md5 = MD5.Create())
+                            {
+                                byte[] hashBytes = md5.ComputeHash(stream);
+                                string hash = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
+                                sb.AppendLine($"{fi.Name}:{hash}");
+                            }
+                        }
                     }
                 );
+
+                using (var writer = new StreamWriter(filePath))
+                {
+                    writer.Write(sb.ToString());
+                }
             }
         }
     }
