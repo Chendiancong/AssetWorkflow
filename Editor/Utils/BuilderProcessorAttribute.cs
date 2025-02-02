@@ -5,7 +5,7 @@ using System.Reflection;
 
 namespace cdc.BundleWorkFlow.Editor
 {
-    internal enum BuilderProcessorPhase
+    public enum BuilderProcessorPhase
     {
         PreBuild,
         PostBuild,
@@ -13,13 +13,13 @@ namespace cdc.BundleWorkFlow.Editor
         PostClean,
     }
 
-    internal interface IBuilderProcessor
+    public interface IBuilderProcessor
     {
         void Execute();
     }
 
     [AttributeUsage(AttributeTargets.Class|AttributeTargets.Struct)]
-    internal class BuilderProcessorAttribute : Attribute
+    public class BuilderProcessorAttribute : Attribute
     {
         private BuilderProcessorPhase m_phase;
         public BuilderProcessorAttribute(BuilderProcessorPhase phase)

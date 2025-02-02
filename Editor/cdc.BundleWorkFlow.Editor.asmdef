@@ -1,7 +1,9 @@
 {
     "name": "cdc.BundleWorkFlow.Editor",
     "rootNamespace": "",
-    "references": [],
+    "references": [
+        "GUID:59a9a6478c87d824ba365fc57fe0395a"
+    ],
     "includePlatforms": [
         "Editor"
     ],

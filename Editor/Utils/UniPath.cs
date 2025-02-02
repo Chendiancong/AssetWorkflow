@@ -5,10 +5,10 @@ using UnityEngine;
 
 namespace cdc.BundleWorkFlow.Editor
 {
-    internal static class UniPath
+    public static class UniPath
     {
         /// <summary>
-        /// 构建assetbundle的资源根目录
+        /// 构建assetbundle的资源根目录，这是相对于Assets的目录
         /// </summary>
         public static string BundleRootPath => BuildSettingAsset.Instance.rootPath;
 

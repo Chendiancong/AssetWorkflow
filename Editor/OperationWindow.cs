@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace cdc.BundleWorkFlow.Editor
 {
-    internal class OperationWindow : EditorWindow
+    public class OperationWindow : EditorWindow
     {
         private GUIContent m_settingLabel = new GUIContent("Settings");
         private GUIContent m_rootPathContent = new GUIContent("Root Path");

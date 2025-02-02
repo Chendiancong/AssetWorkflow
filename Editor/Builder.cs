@@ -1,16 +1,14 @@
-using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
-using System.Linq;
-using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEngine;
 
 namespace cdc.BundleWorkFlow.Editor
 {
-    internal static class Builder
+    public static class Builder
     {
         public static Helper helper = new Helper();
 
@@ -19,11 +17,18 @@ namespace cdc.BundleWorkFlow.Editor
         {
             BuilderProcessorAttribute.ExecutePhase(BuilderProcessorPhase.PreBuild);
             InternalBuild(false);
-            InternalPostBuild();
             BuilderProcessorAttribute.ExecutePhase(BuilderProcessorPhase.PostBuild);
         }
 
-        [MenuItem("Bundle Workflow/Clean", priority = 201)]
+        [MenuItem("Bundle Workflow/Force Build", priority = 201)]
+        public static void ForceBuild()
+        {
+            BuilderProcessorAttribute.ExecutePhase(BuilderProcessorPhase.PreBuild);
+            InternalBuild(true);
+            BuilderProcessorAttribute.ExecutePhase(BuilderProcessorPhase.PostBuild);
+        }
+
+        [MenuItem("Bundle Workflow/Clean", priority = 202)]
         public static void Clean()
         {
             BuilderProcessorAttribute.ExecutePhase(BuilderProcessorPhase.PreClean);
@@ -39,15 +44,21 @@ namespace cdc.BundleWorkFlow.Editor
             BuilderProcessorAttribute.ExecutePhase(BuilderProcessorPhase.PostClean);
         }
 
-        [MenuItem("Bundle Workflow/GenerateAssetFileMap", priority = 202)]
+        [MenuItem("Bundle Workflow/GenerateAssetFileMap", priority = 203)]
         private static void GenerateAssetFileMap()
         {
-            string outputPath = helper.OutputPath;
-            if (!Directory.Exists(outputPath))
-                return;
+            var list = new List<AssetBundleBuild>();
+            helper.CollectAssets(UniPath.BundleRootPath, list);
+            helper.GenerateAssetFileMap(list);
         }
 
-        [MenuItem("Bundle Workflow/Test", priority = 203)]
+        [MenuItem("Bundle Workflow/GenerateAssetFileVersions", priority = 204)]
+        private static void GenerateAssetFileVersions()
+        {
+            helper.GenerateAssetFileVersions();
+        }
+
+        [MenuItem("Bundle Workflow/Test", priority = 205)]
         private static void Test()
         {
             // string input = Path.Combine(Application.dataPath, UniPath.BundleRootPath);
@@ -66,15 +77,11 @@ namespace cdc.BundleWorkFlow.Editor
             // bundle.Unload(true);
         }
 
-        private static void InternalPostBuild()
-        {
-        }
-
         private static void InternalBuild(bool forceRebuild)
         {
             var platform = EditorUserBuildSettings.activeBuildTarget;
-            helper.BeforeBuild();
-            helper.CollectAssets(UniPath.BundleRootPath);
+            var list = new List<AssetBundleBuild>();
+            helper.CollectAssets(UniPath.BundleRootPath, list);
             var targetPath = helper.OutputPath;
             if (!Directory.Exists(targetPath))
                 Directory.CreateDirectory(targetPath);
@@ -86,12 +93,12 @@ namespace cdc.BundleWorkFlow.Editor
 
             BuildPipeline.BuildAssetBundles(
                 targetPath,
-                new List<AssetBundleBuild>(helper.AllBuilds).ToArray(),
+                list.ToArray(),
                 buildOption,
                 platform
             );
 
-            helper.GenerateAssetFileMap();
+            helper.GenerateAssetFileMap(list);
             helper.GenerateAssetFileVersions();
 
             AssetDatabase.Refresh();
@@ -99,24 +106,13 @@ namespace cdc.BundleWorkFlow.Editor
 
         public class Helper
         {
-            private List<AssetBundleBuild> m_builds = new List<AssetBundleBuild>();
             public string OutputPath => Application.streamingAssetsPath;
             public ReadOnlyCollection<AssetBundleBuild> AllBuilds { get; private set; }
 
-            public Helper()
-            {
-                AllBuilds = new ReadOnlyCollection<AssetBundleBuild>(m_builds);
-            }
-
-            public void BeforeBuild()
-            {
-                m_builds.Clear();
-            }
-
-            public void CollectAssets(string rootPath)
+            public void CollectAssets(string rootPath, List<AssetBundleBuild> list)
             {
                 var assetDic = new Dictionary<string, List<string>>();
-                var list = m_builds;
+                list.Clear();
                 UniPath.WalkDataPath(
                     rootPath,
                     (dInfo, fInfo) =>
@@ -136,8 +132,10 @@ namespace cdc.BundleWorkFlow.Editor
                 foreach (KeyValuePair<string, List<string>> kv in assetDic)
                 {
                     var build = new AssetBundleBuild();
-                    build.assetBundleName = UniPath
-                        .LocalPathToAssetBundleName(kv.Key);
+                    string bundleName = UniPath.LocalPathToAssetBundleName(kv.Key);
+                    string origin = bundleName;
+                    Crypto.FromStringToMD5(ref bundleName);
+                    build.assetBundleName = bundleName.Substring(0, 2) + "/" + bundleName;
                     build.assetNames = kv.Value
                         .ConvertAll(v => UniPath.LocalPathToDataPath(v))
                         .ToArray();
@@ -145,10 +143,10 @@ namespace cdc.BundleWorkFlow.Editor
                 }
             }
 
-            public void GenerateAssetFileMap()
+            public void GenerateAssetFileMap(List<AssetBundleBuild> list)
             {
                 var dic = new Dictionary<string, string>();
-                foreach (AssetBundleBuild build in m_builds)
+                foreach (AssetBundleBuild build in list)
                 {
                     foreach (string assetName in build.assetNames)
                         dic[assetName] = build.assetBundleName;
@@ -171,18 +169,16 @@ namespace cdc.BundleWorkFlow.Editor
                 if (File.Exists(filePath))
                     File.Delete(filePath);
                 var sb = new StringBuilder();
+                var ignoreEnd = new Regex(@"\.(meta|manifest)$", RegexOptions.IgnoreCase);
                 UniPath.WalkDirectory(
                     OutputPath,
                     (di, fi) => {
-                        using (FileStream stream = File.OpenRead(fi.FullName))
-                        {
-                            using (MD5 md5 = MD5.Create())
-                            {
-                                byte[] hashBytes = md5.ComputeHash(stream);
-                                string hash = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
-                                sb.AppendLine($"{fi.Name}:{hash}");
-                            }
-                        }
+                        // 不需要计算meta文件和manifest文件
+                        if (ignoreEnd.IsMatch(fi.Name))
+                            return;
+                        string md5Hash = null;
+                        Crypto.FromFileToMD5(ref md5Hash, fi.FullName);
+                        sb.Append($"{fi.Name}:{md5Hash}\n");
                     }
                 );
 
