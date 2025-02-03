@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
+using Newtonsoft.Json;
 using UnityEditor;
 using UnityEngine;
 
@@ -50,15 +51,24 @@ namespace cdc.BundleWorkFlow.Editor
             var list = new List<AssetBundleBuild>();
             helper.CollectAssets(UniPath.BundleRootPath, list);
             helper.GenerateAssetFileMap(list);
+            AssetDatabase.Refresh();
         }
 
         [MenuItem("Bundle Workflow/GenerateAssetFileVersions", priority = 204)]
         private static void GenerateAssetFileVersions()
         {
             helper.GenerateAssetFileVersions();
+            AssetDatabase.Refresh();
         }
 
-        [MenuItem("Bundle Workflow/Test", priority = 205)]
+        [MenuItem("Bundle Workflow/GenerateSettingFile", priority = 205)]
+        private static void GenerateSettingFile()
+        {
+            helper.GenerateSettingFile();
+            AssetDatabase.Refresh();
+        }
+
+        [MenuItem("Bundle Workflow/Test", priority = 206)]
         private static void Test()
         {
             // string input = Path.Combine(Application.dataPath, UniPath.BundleRootPath);
@@ -100,6 +110,7 @@ namespace cdc.BundleWorkFlow.Editor
 
             helper.GenerateAssetFileMap(list);
             helper.GenerateAssetFileVersions();
+            helper.GenerateSettingFile();
 
             AssetDatabase.Refresh();
         }
@@ -141,6 +152,8 @@ namespace cdc.BundleWorkFlow.Editor
                         .ToArray();
                     list.Add(build);
                 }
+
+                Debug.Log("Collect assets ok.");
             }
 
             public void GenerateAssetFileMap(List<AssetBundleBuild> list)
@@ -161,6 +174,8 @@ namespace cdc.BundleWorkFlow.Editor
                 {
                     writer.Write(sb.ToString());
                 }
+
+                Debug.Log("Mapping file generated successfully.");
             }
 
             public void GenerateAssetFileVersions()
@@ -186,6 +201,24 @@ namespace cdc.BundleWorkFlow.Editor
                 {
                     writer.Write(sb.ToString());
                 }
+                Debug.Log("Version file generated successfully.");
+            }
+
+            public void GenerateSettingFile()
+            {
+                var setting = new
+                {
+                    bundleRootPath = $"Assets/{UniPath.BundleRootPath}",
+                };
+                string jsonString = JsonConvert.SerializeObject(setting, Formatting.Indented);
+                string filePath = Path.Combine(UniPath.BundleOutputPath, "Setting.json");
+                if (File.Exists(filePath))
+                    File.Delete(filePath);
+                using (var writer = new StreamWriter(filePath))
+                {
+                    writer.Write(jsonString);
+                }
+                Debug.Log("Setting file generated successfully");
             }
         }
     }

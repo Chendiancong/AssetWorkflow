@@ -11,6 +11,10 @@ namespace cdc.BundleWorkFlow.Editor
         /// 构建assetbundle的资源根目录，这是相对于Assets的目录
         /// </summary>
         public static string BundleRootPath => BuildSettingAsset.Instance.rootPath;
+        /// <summary>
+        /// asset bundle的输出目录(系统本地目录)
+        /// </summary>
+        public static string BundleOutputPath => BuildSettingAsset.Instance.OutputPath;
 
         private static Regex m_dataPathReg = new Regex($@"^\b{Application.dataPath}\b[\\\/]?");
         /// <summary>

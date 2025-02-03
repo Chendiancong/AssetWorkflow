@@ -5,8 +5,20 @@ namespace cdc.BundleWorkFlow.Editor
 {
     internal class BuildSettingAsset : ScriptableObject
     {
+        [Tooltip("构建asset bundle的资源的根目录，它是相对于Assets的目录，统一用正斜杠(/)进行分割")]
+        /// <summary>
+        /// 构建asset bundle的资源的根目录，它是相对于Assets的目录，统一用正斜杠(/)进行分割
+        /// </summary>
         public string rootPath = "PackAssets";
+        [Tooltip("asset bundle的压缩类型，No为不压缩，ChunkedCompress为LZ4，FullCompress为LZMA")]
+        /// <summary>
+        /// asset bundle的压缩类型，No为不压缩，ChunkedCompress为LZ4，FullCompress为LZMA
+        /// </summary>
         public CompressType compressType = CompressType.ChunkedCompress;
+        /// <summary>
+        /// asset bundle的输出目录(系统本地目录)
+        /// </summary>
+        public string OutputPath => Application.streamingAssetsPath;
 
         private static BuildSettingAsset m_instance;
         public static BuildSettingAsset Instance
