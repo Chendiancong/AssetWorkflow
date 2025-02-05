@@ -1,7 +1,7 @@
 using UnityEditor;
 using UnityEngine;
 
-namespace cdc.BundleWorkFlow.Editor
+namespace cdc.AssetWorkflow.Editor
 {
     public class OperationWindow : EditorWindow
     {

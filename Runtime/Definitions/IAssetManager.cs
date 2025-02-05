@@ -1,4 +1,4 @@
-namespace cdc.BundleWorkFlow
+namespace cdc.AssetWorkflow
 {
     public interface IAssetManager
     {

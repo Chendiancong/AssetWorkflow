@@ -1,7 +1,7 @@
 using UnityEditor;
 using UnityEngine;
 
-namespace cdc.BundleWorkFlow.Editor
+namespace cdc.AssetWorkflow.Editor
 {
     internal class BuildSettingAsset : ScriptableObject
     {
@@ -27,7 +27,7 @@ namespace cdc.BundleWorkFlow.Editor
             {
                 if (m_instance == null)
                 {
-                    string path = "Assets/bundle-workflow/BuildSettingAsset.asset";
+                    string path = "Assets/AssetWorkflow/BuildSettingAsset.asset";
                     m_instance = AssetDatabase.LoadAssetAtPath<BuildSettingAsset>(path);;
                     if (m_instance == null)
                     {

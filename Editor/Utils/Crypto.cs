@@ -3,7 +3,7 @@ using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace cdc.BundleWorkFlow.Editor
+namespace cdc.AssetWorkflow.Editor
 {
     public static class Crypto
     {

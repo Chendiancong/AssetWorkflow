@@ -6,7 +6,7 @@ using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEngine;
 
-namespace cdc.BundleWorkFlow.Editor
+namespace cdc.AssetWorkflow.Editor
 {
     public static class Builder
     {

@@ -2,7 +2,7 @@ using System;
 using System.Threading.Tasks;
 using UnityEngine;
 
-namespace cdc.BundleWorkFlow
+namespace cdc.AssetWorkflow
 {
     internal class ManagedAsset : IAssetHandle
     {

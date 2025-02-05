@@ -1,12 +1,8 @@
 {
-    "name": "cdc.BundleWorkFlow.Editor",
+    "name": "cdc.AssetWorkflow",
     "rootNamespace": "",
-    "references": [
-        "GUID:59a9a6478c87d824ba365fc57fe0395a"
-    ],
-    "includePlatforms": [
-        "Editor"
-    ],
+    "references": [],
+    "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": false,

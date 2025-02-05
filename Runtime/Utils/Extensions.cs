@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace cdc.BundleWorkFlow
+namespace cdc.AssetWorkflow
 {
     public static class Extensions
     {

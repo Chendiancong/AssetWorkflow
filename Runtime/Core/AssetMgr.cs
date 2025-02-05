@@ -4,7 +4,7 @@ using System.IO;
 using System.Threading.Tasks;
 using UnityEngine;
 
-namespace cdc.BundleWorkFlow
+namespace cdc.AssetWorkflow
 {
     public class AssetMgr : IAssetLoader, IAssetManager
     {

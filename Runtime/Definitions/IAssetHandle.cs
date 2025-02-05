@@ -1,7 +1,7 @@
 using System.Threading.Tasks;
 using UnityEngine;
 
-namespace cdc.BundleWorkFlow
+namespace cdc.AssetWorkflow
 {
     public interface IBaseHandle
     {

@@ -1,7 +1,7 @@
 using System;
 using System.Threading.Tasks;
 
-namespace cdc.BundleWorkFlow
+namespace cdc.AssetWorkflow
 {
     public interface IAssetLoader
     {

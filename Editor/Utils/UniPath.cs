@@ -3,7 +3,7 @@ using System.IO;
 using System.Text.RegularExpressions;
 using UnityEngine;
 
-namespace cdc.BundleWorkFlow.Editor
+namespace cdc.AssetWorkflow.Editor
 {
     public static class UniPath
     {
