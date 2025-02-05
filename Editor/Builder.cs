@@ -3,7 +3,6 @@ using System.Collections.ObjectModel;
 using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
-using Newtonsoft.Json;
 using UnityEditor;
 using UnityEngine;
 
@@ -210,7 +209,7 @@ namespace cdc.BundleWorkFlow.Editor
                 {
                     bundleRootPath = $"Assets/{UniPath.BundleRootPath}",
                 };
-                string jsonString = JsonConvert.SerializeObject(setting, Formatting.Indented);
+                string jsonString = JsonUtility.ToJson(setting, true);
                 string filePath = Path.Combine(UniPath.BundleOutputPath, "Setting.json");
                 if (File.Exists(filePath))
                     File.Delete(filePath);
