@@ -5,11 +5,7 @@ namespace cdc.AssetWorkflow.Editor
 {
     public class OperationWindow : EditorWindow
     {
-        private GUIContent m_settingLabel = new GUIContent("Settings");
-        private GUIContent m_rootPathContent = new GUIContent("Root Path");
-        private GUIContent m_compressTypeContent = new GUIContent("Compress Type");
-        private GUIContent m_buildContent = new GUIContent("Build");
-        private GUIContent m_cleanContent = new GUIContent("Clean");
+        private GUILayoutOption m_maxWidth_100 = GUILayout.MaxWidth(100);
         private SerializedObject m_settingObj;
 
         [MenuItem("Bundle Workflow/Operation", priority = 100)]
@@ -25,15 +21,35 @@ namespace cdc.AssetWorkflow.Editor
                 m_settingObj = new SerializedObject(BuildSettingAsset.Instance);
             m_settingObj.Update();
 
-            EditorGUILayout.LabelField(m_settingLabel);
-            EditorGUILayout.PropertyField(m_settingObj.FindProperty("rootPath"), m_rootPathContent);
-            EditorGUILayout.PropertyField(m_settingObj.FindProperty("compressType"), m_compressTypeContent);
+            EditorGUILayout.LabelField(MyStyles.GetContent("Settings"));
+            EditorGUILayout.PropertyField(m_settingObj.FindProperty("rootPath"), MyStyles.GetContent("Root Path"));
+            EditorGUILayout.PropertyField(m_settingObj.FindProperty("compressType"), MyStyles.GetContent("Compress Type"));
+
+            if (MyStyles.Toggle(m_settingObj.FindProperty("enablePatch"), MyStyles.GetContent("Enable Patch")))
+            {
+                if (MyStyles.Toggle(m_settingObj.FindProperty("useLocalServer"), MyStyles.GetContent("Use Local Server")))
+                {
+                    EditorGUILayout.PropertyField(m_settingObj.FindProperty("host"), MyStyles.GetContent("Host"));
+                }
+                else
+                {
+                    EditorGUILayout.PropertyField(m_settingObj.FindProperty("serverUrl"), MyStyles.GetContent("Server Url"));
+                    EditorGUILayout.PropertyField(m_settingObj.FindProperty("host"), MyStyles.GetContent("Host"));
+                }
+
+                if (!MyStyles.Toggle(m_settingObj.FindProperty("useDefaultOutputPath"), MyStyles.GetContent("Use Default OutputPath")))
+                {
+                    EditorGUILayout.PropertyField(m_settingObj.FindProperty("customOutputPath"), MyStyles.GetContent("OutputPath"));
+                }
+            }
+
+
             m_settingObj.ApplyModifiedProperties();
 
             EditorGUILayout.BeginHorizontal();
-            if (GUILayout.Button(m_buildContent))
+            if (GUILayout.Button(MyStyles.GetContent("Build"), m_maxWidth_100))
                 Builder.NormalBuild();
-            if (GUILayout.Button(m_cleanContent))
+            if (GUILayout.Button(MyStyles.GetContent("Clean"), m_maxWidth_100))
                 Builder.Clean();
             EditorGUILayout.EndHorizontal();
         }

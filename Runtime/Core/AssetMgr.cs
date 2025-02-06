@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using UnityEngine;
 
@@ -8,50 +9,73 @@ namespace cdc.AssetWorkflow
 {
     public class AssetMgr : IAssetLoader, IAssetManager
     {
-        private AssetHotUpdate m_hotUpdate;
+        private AssetMgrHelper m_helper;
         private Dictionary<string, string> m_persistentPaths;
         private Dictionary<string, string> m_assetPath2Bundles;
-        private Dictionary<string, ManagedAssetBundle> m_bundles;
+        private Dictionary<string, IBaseAsset> m_cachedAssets;
+        private AssetBundleManifest m_manifest;
+        private AssetMgrConfig m_setting;
 
         public AssetMgr()
         {
-            m_hotUpdate = new AssetHotUpdate();
+            m_helper = new AssetMgrHelper();
             m_assetPath2Bundles = new Dictionary<string, string>();
-            m_bundles = new Dictionary<string, ManagedAssetBundle>();
+            m_cachedAssets = new Dictionary<string, IBaseAsset>();
         }
 
-        public void Init()
+        public async ValueTask Init()
         {
-            m_hotUpdate.Initital(this);
+            m_setting = m_helper.LoadSetting(this);
+            Debug.Log(ObjectDumper.Dump(m_setting));
+            await m_helper.HotUpdate(this);
+
+            // m_manifest = await LoadManifest();
+            // Debug.Log(m_manifest);
         }
 
-        public Task HotUpdate() => m_hotUpdate.Execute(this);
-
-        public void LoadResource<AssetType>(string assetPath, Action<Exception, AssetType> onLoaded)
-            where AssetType : UnityEngine.Object
+        #region IAssetLoader
+        private Regex m_resourcePath = new Regex(@"^Assets[//]Resources");
+        public void LoadAsset(string assetPath, Action<Exception, IAssetHandle> onLoaded)
         {
-            throw new NotImplementedException();
+            string dataPath = $"Asset/{assetPath}";
+            if (m_resourcePath.IsMatch(dataPath))
+                LoadFromResources(assetPath)
+                    .AsTask()
+                    .ContinueWith(task => onLoaded(task.Exception, task.Result));
+
         }
 
-        public ValueTask<AssetType> LoadResource<AssetType>(string assetPath)
-            where AssetType : UnityEngine.Object
-        {
-            throw new NotImplementedException();
-        }
-
-        public void LoadBundleAsset<AssetType>(string assetPath, Action<Exception, AssetType> onLoaded) where AssetType : UnityEngine.Object
-        {
-            throw new NotImplementedException();
-        }
-
-        public ValueTask<AssetType> LoadBundleAsset<AssetType>(string assetPath) where AssetType : UnityEngine.Object
+        public ValueTask<IAssetHandle> LoadAsset(string assetPath)
         {
             throw new NotImplementedException();
         }
 
+        private ValueTask<IAssetHandle> LoadFromResources(string assetPath)
+        {
+            throw new NotImplementedException();
+        }
+
+        private ValueTask<IAssetHandle> LoadFromAssetBundle(string assetPath)
+        {
+            throw new NotImplementedException();
+        }
+
+        private ValueTask<IAssetHandle> LoadFromAssetBundle2(string finalPath)
+        {
+            IBaseAsset asset;
+            if (!m_cachedAssets.TryGetValue(finalPath, out asset))
+            {
+
+            }
+            return new ValueTask<IAssetHandle>(asset.CastToHandle<IAssetHandle>());
+        }
+
+        #endregion
+
+        #region IAssetManager
         bool IAssetManager.AssetPathToBundleName(string assetPath, out string output)
         {
-            throw new NotImplementedException();
+            return AssetPathToBundleName(assetPath, out output);
         }
 
         bool IAssetManager.GetBundlePath(string bundleName, out string bundlePath)
@@ -86,6 +110,12 @@ namespace cdc.AssetWorkflow
         bool IAssetManager.CompareVersion(string bundleName, string intputVersion)
         {
             throw new NotImplementedException();
+        }
+        #endregion
+
+        private bool AssetPathToBundleName(string assetPath, out string output)
+        {
+            return m_assetPath2Bundles.TryGetValue(assetPath, out output);
         }
     }
 }

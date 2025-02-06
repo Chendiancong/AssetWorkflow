@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
+using Unity.Plastic.Newtonsoft.Json;
 using UnityEditor;
 using UnityEngine;
 
@@ -32,7 +33,7 @@ namespace cdc.AssetWorkflow.Editor
         public static void Clean()
         {
             BuilderProcessorAttribute.ExecutePhase(BuilderProcessorPhase.PreClean);
-            string targetPath = helper.OutputPath;
+            string targetPath = UniPath.BundleOutputPath;
             if (Directory.Exists(targetPath))
             {
                 Directory.Delete(targetPath, true);
@@ -91,7 +92,7 @@ namespace cdc.AssetWorkflow.Editor
             var platform = EditorUserBuildSettings.activeBuildTarget;
             var list = new List<AssetBundleBuild>();
             helper.CollectAssets(UniPath.BundleRootPath, list);
-            var targetPath = helper.OutputPath;
+            var targetPath = UniPath.BundleOutputPath;
             if (!Directory.Exists(targetPath))
                 Directory.CreateDirectory(targetPath);
             var buildOption = BuildAssetBundleOptions.None;
@@ -116,7 +117,6 @@ namespace cdc.AssetWorkflow.Editor
 
         public class Helper
         {
-            public string OutputPath => Application.streamingAssetsPath;
             public ReadOnlyCollection<AssetBundleBuild> AllBuilds { get; private set; }
 
             public void CollectAssets(string rootPath, List<AssetBundleBuild> list)
@@ -164,11 +164,17 @@ namespace cdc.AssetWorkflow.Editor
                         dic[assetName] = build.assetBundleName;
                 }
 
+                {
+                    // manifest file
+                    string manifestName = Path.GetFileName(UniPath.BundleOutputPath);
+                    dic[manifestName] = manifestName;
+                }
+
                 var sb = new StringBuilder();
                 foreach (KeyValuePair<string, string> kv in dic)
                     sb.AppendLine($"{kv.Key}:{kv.Value}");
 
-                string filePath = Path.Combine(OutputPath, "AssetMap.txt");
+                string filePath = Path.Combine(UniPath.BundleOutputPath, "AssetMap.txt");
                 using (var writer = new StreamWriter(filePath))
                 {
                     writer.Write(sb.ToString());
@@ -179,13 +185,13 @@ namespace cdc.AssetWorkflow.Editor
 
             public void GenerateAssetFileVersions()
             {
-                string filePath = Path.Combine(OutputPath, "Version.txt");
+                string filePath = Path.Combine(UniPath.BundleOutputPath, "Version.txt");
                 if (File.Exists(filePath))
                     File.Delete(filePath);
                 var sb = new StringBuilder();
                 var ignoreEnd = new Regex(@"\.(meta|manifest)$", RegexOptions.IgnoreCase);
                 UniPath.WalkDirectory(
-                    OutputPath,
+                    UniPath.BundleOutputPath,
                     (di, fi) => {
                         // 不需要计算meta文件和manifest文件
                         if (ignoreEnd.IsMatch(fi.Name))
@@ -205,12 +211,11 @@ namespace cdc.AssetWorkflow.Editor
 
             public void GenerateSettingFile()
             {
-                var setting = new
-                {
-                    bundleRootPath = $"Assets/{UniPath.BundleRootPath}",
-                };
-                string jsonString = JsonUtility.ToJson(setting, true);
-                string filePath = Path.Combine(UniPath.BundleOutputPath, "Setting.json");
+                string settingName = "Setting.json";
+                AssetMgrConfig config = BuildSettingAsset.Instance.CreateConfig();
+                config.settingName = settingName;
+                string filePath = Path.Combine(UniPath.BundleOutputPath, settingName);
+                string jsonString = JsonConvert.SerializeObject(config, Formatting.Indented);
                 if (File.Exists(filePath))
                     File.Delete(filePath);
                 using (var writer = new StreamWriter(filePath))
