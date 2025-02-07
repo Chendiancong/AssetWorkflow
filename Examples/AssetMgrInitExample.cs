@@ -3,9 +3,14 @@ using UnityEngine;
 
 public class AssetMgrInitExample : MonoBehaviour
 {
-    private async void Start()
+    private AssetMgr m_assetMgr;
+    public async void Doit()
     {
-        var mgr = new AssetMgr();
-        await mgr.Init();
+        if (m_assetMgr is null)
+        {
+            m_assetMgr = new AssetMgr();
+            m_assetMgr.Init();
+            await m_assetMgr.HotUpdate();
+        }
     }
 }

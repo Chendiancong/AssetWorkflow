@@ -10,6 +10,5 @@ namespace cdc.AssetWorkflow
         public string manifestName;
         public string settingName;
         public string serverUrl;
-        public int host;
     }
 }

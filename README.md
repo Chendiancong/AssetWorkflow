@@ -17,9 +17,12 @@ through Window/PackageManager, you can:
 - 针对打包的配置生成Setting文件
 
 ## AssetBundle资源系统初始化
-- 从服务器下载Version，进行本地资源更新
-- 从服务器下载AssetMap，记录文件映射
-- 读取Setting，读取打包配置
+- 加载Setting文件，读取到打包配置
+- 读取本地的Version文件
+- 从服务器下载Version到内存中
+- 比较文件的Version，下载新的资源（最好能够支持多线程下载，提高效率），周期性写入Version到本地
+- 从本地加载已经更新的AssetMap，记录文件映射
+- AssetMgr初始化完成
 
 ## AssetBundle加载与内存管理
 - 使用一个包装类来对已经加载的AssetBundle进行管理，记录它的加载状态和引用计数

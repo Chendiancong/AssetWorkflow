@@ -14,9 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   rootPath: PackAssets
   compressType: 2
-  enablePatch: 0
-  useLocalServer: 1
-  serverUrl: http://localhost
+  enablePatch: 1
+  serverUrl: http://localhost:8080/game-asset
   host: 8080
-  useDefaultOutputPath: 1
-  customOutputPath: Assets/StreamingAssets
+  useDefaultOutputPath: 0
+  customOutputPath: G:/TestWebServer/game-asset/

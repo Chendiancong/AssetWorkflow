@@ -27,15 +27,7 @@ namespace cdc.AssetWorkflow.Editor
 
             if (MyStyles.Toggle(m_settingObj.FindProperty("enablePatch"), MyStyles.GetContent("Enable Patch")))
             {
-                if (MyStyles.Toggle(m_settingObj.FindProperty("useLocalServer"), MyStyles.GetContent("Use Local Server")))
-                {
-                    EditorGUILayout.PropertyField(m_settingObj.FindProperty("host"), MyStyles.GetContent("Host"));
-                }
-                else
-                {
-                    EditorGUILayout.PropertyField(m_settingObj.FindProperty("serverUrl"), MyStyles.GetContent("Server Url"));
-                    EditorGUILayout.PropertyField(m_settingObj.FindProperty("host"), MyStyles.GetContent("Host"));
-                }
+                EditorGUILayout.PropertyField(m_settingObj.FindProperty("serverUrl"), MyStyles.GetContent("Server Url"));
 
                 if (!MyStyles.Toggle(m_settingObj.FindProperty("useDefaultOutputPath"), MyStyles.GetContent("Use Default OutputPath")))
                 {

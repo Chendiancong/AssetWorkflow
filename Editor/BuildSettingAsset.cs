@@ -22,18 +22,10 @@ namespace cdc.AssetWorkflow.Editor
         [Tooltip("是否启用热更新\n不启用热更新的话AssetBundle会固定输出到{Application.dataPath}")]
         public bool enablePatch = true;
         /// <summary>
-        /// 是否使用本地服务
-        /// </summary>
-        [Tooltip("是否使用本地服务")]
-        public bool useLocalServer = true;
-        /// <summary>
         /// 资源服务器地址
         /// </summary>
         [Tooltip("资源服务器地址")]
         public string serverUrl = "http://localhost";
-        [Tooltip("端口id")]
-        [Min(1)]
-        public int host = 8080;
         /// <summary>
         /// 是否使用默认输出目录（Application.streamingAssetsPath），
         /// 自定义目录可以是绝对目录也可以是相对目录，相对目录以项目目录为起始目录
@@ -94,8 +86,7 @@ namespace cdc.AssetWorkflow.Editor
             config.enablePatch = enablePatch;
             config.bundleRootPath = rootPath;
             config.manifestName = Path.GetFileName(OutputPath);
-            config.serverUrl = useLocalServer ? "http://localhost" : serverUrl;
-            config.host = host;
+            config.serverUrl = serverUrl;
             return config;
         }
 

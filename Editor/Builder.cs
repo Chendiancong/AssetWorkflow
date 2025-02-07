@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
@@ -214,15 +215,32 @@ namespace cdc.AssetWorkflow.Editor
                 string settingName = "Setting.json";
                 AssetMgrConfig config = BuildSettingAsset.Instance.CreateConfig();
                 config.settingName = settingName;
-                string filePath = Path.Combine(UniPath.BundleOutputPath, settingName);
                 string jsonString = JsonConvert.SerializeObject(config, Formatting.Indented);
-                if (File.Exists(filePath))
-                    File.Delete(filePath);
-                using (var writer = new StreamWriter(filePath))
+                Action<string> SaveSetting = (string filePath) =>
                 {
-                    writer.Write(jsonString);
-                }
-                Debug.Log("Setting file generated successfully");
+                    string dirName = Path.GetDirectoryName(filePath);
+                    if (!Directory.Exists(dirName))
+                        Directory.CreateDirectory(dirName);
+                    if (File.Exists(filePath))
+                        File.Delete(filePath);
+                    using (var writer = new StreamWriter(filePath))
+                    {
+                        writer.Write(jsonString);
+                    }
+                };
+
+                string filePath = Path.Combine(
+                    UniPath.BundleOutputPath,
+                    settingName
+                );
+                SaveSetting(filePath);
+                string backupPath = Path.Combine(
+                    Application.streamingAssetsPath,
+                    settingName
+                );
+                if (!filePath.StrEquals(backupPath))
+                    SaveSetting(backupPath);
+                Debug.Log("Setting file generate successfully!");
             }
         }
     }
