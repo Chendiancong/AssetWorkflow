@@ -23,7 +23,7 @@ namespace cdc.AssetWorkflow
                 bool isOk = await pending.tsc.Task;
                 if (!isOk)
                     throw new Exception($"Download {url} failed!");
-                onComplete(request.downloadHandler as T);
+                onComplete?.Invoke(request.downloadHandler as T);
             }
         }
 

@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace cdc.AssetWorkflow.Editor
 {
-    public static class UniPath
+    public static class EditorFileSystem
     {
         /// <summary>
         /// 构建assetbundle的资源根目录，这是相对于Assets的目录
@@ -71,6 +71,21 @@ namespace cdc.AssetWorkflow.Editor
                 foreach (DirectoryInfo _di in di.EnumerateDirectories())
                     WalkDirectory(_di.FullName, action);
             }
+        }
+
+        /// <summary>
+        /// 清空一个目录中的所有内容
+        /// </summary>
+        /// <param name="path"></param>
+        public static void CleanDirectory(string path)
+        {
+            if (!Directory.Exists(path))
+                return;
+            var di = new DirectoryInfo(path);
+            foreach (DirectoryInfo _di in di.EnumerateDirectories())
+                Directory.Delete(_di.FullName, true);
+            foreach (FileInfo fi in di.EnumerateFiles())
+                File.Delete(fi.FullName);
         }
     }
 }

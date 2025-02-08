@@ -16,6 +16,5 @@ MonoBehaviour:
   compressType: 2
   enablePatch: 1
   serverUrl: http://localhost:8080/game-asset
-  host: 8080
   useDefaultOutputPath: 0
   customOutputPath: G:/TestWebServer/game-asset/

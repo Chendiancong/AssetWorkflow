@@ -8,7 +8,7 @@ namespace cdc.AssetWorkflow.Editor
         private GUILayoutOption m_maxWidth_100 = GUILayout.MaxWidth(100);
         private SerializedObject m_settingObj;
 
-        [MenuItem("Bundle Workflow/Operation", priority = 100)]
+        [MenuItem("Asset Workflow/Operation", priority = 100)]
         public static void ShowWindow()
         {
             OperationWindow window = GetWindow<OperationWindow>("Bundle Workflow");

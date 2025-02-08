@@ -14,7 +14,7 @@ namespace cdc.AssetWorkflow.Editor
     {
         public static Helper helper = new Helper();
 
-        [MenuItem("Bundle Workflow/Normal Build", priority = 200)]
+        [MenuItem("Asset Workflow/Normal Build", priority = 200)]
         public static void NormalBuild()
         {
             BuilderProcessorAttribute.ExecutePhase(BuilderProcessorPhase.PreBuild);
@@ -22,7 +22,7 @@ namespace cdc.AssetWorkflow.Editor
             BuilderProcessorAttribute.ExecutePhase(BuilderProcessorPhase.PostBuild);
         }
 
-        [MenuItem("Bundle Workflow/Force Build", priority = 201)]
+        [MenuItem("Asset Workflow/Force Build", priority = 201)]
         public static void ForceBuild()
         {
             BuilderProcessorAttribute.ExecutePhase(BuilderProcessorPhase.PreBuild);
@@ -30,46 +30,39 @@ namespace cdc.AssetWorkflow.Editor
             BuilderProcessorAttribute.ExecutePhase(BuilderProcessorPhase.PostBuild);
         }
 
-        [MenuItem("Bundle Workflow/Clean", priority = 202)]
+        [MenuItem("Asset Workflow/Clean", priority = 202)]
         public static void Clean()
         {
             BuilderProcessorAttribute.ExecutePhase(BuilderProcessorPhase.PreClean);
-            string targetPath = UniPath.BundleOutputPath;
-            if (Directory.Exists(targetPath))
-            {
-                Directory.Delete(targetPath, true);
-                string metaFile = $"{targetPath}.meta";
-                if (File.Exists(metaFile))
-                    File.Delete(metaFile);
-                AssetDatabase.Refresh();
-            }
+            string targetPath = EditorFileSystem.BundleOutputPath;
+            EditorFileSystem.CleanDirectory(targetPath);
             BuilderProcessorAttribute.ExecutePhase(BuilderProcessorPhase.PostClean);
         }
 
-        [MenuItem("Bundle Workflow/GenerateAssetFileMap", priority = 203)]
+        [MenuItem("Asset Workflow/GenerateAssetFileMap", priority = 203)]
         private static void GenerateAssetFileMap()
         {
             var list = new List<AssetBundleBuild>();
-            helper.CollectAssets(UniPath.BundleRootPath, list);
+            helper.CollectAssets(EditorFileSystem.BundleRootPath, list);
             helper.GenerateAssetFileMap(list);
             AssetDatabase.Refresh();
         }
 
-        [MenuItem("Bundle Workflow/GenerateAssetFileVersions", priority = 204)]
+        [MenuItem("Asset Workflow/GenerateAssetFileVersions", priority = 204)]
         private static void GenerateAssetFileVersions()
         {
             helper.GenerateAssetFileVersions();
             AssetDatabase.Refresh();
         }
 
-        [MenuItem("Bundle Workflow/GenerateSettingFile", priority = 205)]
+        [MenuItem("Asset Workflow/GenerateSettingFile", priority = 205)]
         private static void GenerateSettingFile()
         {
             helper.GenerateSettingFile();
             AssetDatabase.Refresh();
         }
 
-        [MenuItem("Bundle Workflow/Test", priority = 206)]
+        // [MenuItem("Bundle Workflow/Test", priority = 206)]
         private static void Test()
         {
             // string input = Path.Combine(Application.dataPath, UniPath.BundleRootPath);
@@ -92,8 +85,8 @@ namespace cdc.AssetWorkflow.Editor
         {
             var platform = EditorUserBuildSettings.activeBuildTarget;
             var list = new List<AssetBundleBuild>();
-            helper.CollectAssets(UniPath.BundleRootPath, list);
-            var targetPath = UniPath.BundleOutputPath;
+            helper.CollectAssets(EditorFileSystem.BundleRootPath, list);
+            var targetPath = EditorFileSystem.BundleOutputPath;
             if (!Directory.Exists(targetPath))
                 Directory.CreateDirectory(targetPath);
             var buildOption = BuildAssetBundleOptions.None;
@@ -124,7 +117,7 @@ namespace cdc.AssetWorkflow.Editor
             {
                 var assetDic = new Dictionary<string, List<string>>();
                 list.Clear();
-                UniPath.WalkDataPath(
+                EditorFileSystem.WalkDataPath(
                     rootPath,
                     (dInfo, fInfo) =>
                     {
@@ -143,12 +136,12 @@ namespace cdc.AssetWorkflow.Editor
                 foreach (KeyValuePair<string, List<string>> kv in assetDic)
                 {
                     var build = new AssetBundleBuild();
-                    string bundleName = UniPath.LocalPathToAssetBundleName(kv.Key);
+                    string bundleName = EditorFileSystem.LocalPathToAssetBundleName(kv.Key);
                     string origin = bundleName;
                     Crypto.FromStringToMD5(ref bundleName);
-                    build.assetBundleName = bundleName.Substring(0, 2) + "/" + bundleName;
+                    build.assetBundleName = bundleName.Substring(0, 2) + "/" + bundleName + ".ab";
                     build.assetNames = kv.Value
-                        .ConvertAll(v => UniPath.LocalPathToDataPath(v))
+                        .ConvertAll(v => EditorFileSystem.LocalPathToDataPath(v))
                         .ToArray();
                     list.Add(build);
                 }
@@ -167,15 +160,17 @@ namespace cdc.AssetWorkflow.Editor
 
                 {
                     // manifest file
-                    string manifestName = Path.GetFileName(UniPath.BundleOutputPath);
+                    string manifestName = Path.GetFileName(EditorFileSystem.BundleOutputPath);
                     dic[manifestName] = manifestName;
                 }
 
                 var sb = new StringBuilder();
                 foreach (KeyValuePair<string, string> kv in dic)
+                {
                     sb.AppendLine($"{kv.Key}:{kv.Value}");
+                }
 
-                string filePath = Path.Combine(UniPath.BundleOutputPath, "AssetMap.txt");
+                string filePath = Path.Combine(EditorFileSystem.BundleOutputPath, "AssetMap");
                 using (var writer = new StreamWriter(filePath))
                 {
                     writer.Write(sb.ToString());
@@ -186,13 +181,13 @@ namespace cdc.AssetWorkflow.Editor
 
             public void GenerateAssetFileVersions()
             {
-                string filePath = Path.Combine(UniPath.BundleOutputPath, "Version.txt");
+                string filePath = Path.Combine(EditorFileSystem.BundleOutputPath, "Version");
                 if (File.Exists(filePath))
                     File.Delete(filePath);
                 var sb = new StringBuilder();
                 var ignoreEnd = new Regex(@"\.(meta|manifest)$", RegexOptions.IgnoreCase);
-                UniPath.WalkDirectory(
-                    UniPath.BundleOutputPath,
+                EditorFileSystem.WalkDirectory(
+                    EditorFileSystem.BundleOutputPath,
                     (di, fi) => {
                         // 不需要计算meta文件和manifest文件
                         if (ignoreEnd.IsMatch(fi.Name))
@@ -230,7 +225,7 @@ namespace cdc.AssetWorkflow.Editor
                 };
 
                 string filePath = Path.Combine(
-                    UniPath.BundleOutputPath,
+                    EditorFileSystem.BundleOutputPath,
                     settingName
                 );
                 SaveSetting(filePath);

@@ -1,14 +1,14 @@
-# BundleWorkFlow
-a simple but useful solution for using AssetBundle in Unity   
+# AssetWorkflow
+AssetWorkow旨在为Unity开发者提供一个一站式资源管理框架，包括AssetBundle构建，类似**Addressables**的可寻址AssetBundle资源加载，运行时缓存管理，dlc及资源热更新等功能
 
-# Summary
+## 安装
+通过**Unity包管理器（Window/PackageManager）**安装:   
+1. **add package from git url**，地址为https://gitee.com/diancongchen/EasyCoroutine.git
+2. clone仓库到本地，通过**add package from dist**进行安装
+3. 也可以直接作为子模块添加到Assets目录下，这样在使用的同时也可以对他进行修改
 
-# Installation
-through Window/PackageManager, you can:   
-- __add package from git URL__, which is https://github.com/Chendiancong/bundle-workflow.git
-- clone this repository into your local path, and __add package from disk__
-
-# design
+## 使用
+- 
 
 ## AssetBundle构建过程
 - 指定一个根目录，在根目录中以文件夹为单位构建ab包
@@ -20,7 +20,7 @@ through Window/PackageManager, you can:
 - 加载Setting文件，读取到打包配置
 - 读取本地的Version文件
 - 从服务器下载Version到内存中
-- 比较文件的Version，下载新的资源（最好能够支持多线程下载，提高效率），周期性写入Version到本地
+- 比较文件的Version，下载新的资源（最好能够支持多线程下载，提高效率），持续写入Version到本地
 - 从本地加载已经更新的AssetMap，记录文件映射
 - AssetMgr初始化完成
 

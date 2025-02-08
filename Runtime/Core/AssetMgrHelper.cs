@@ -1,17 +1,15 @@
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using UnityEngine;
-using UnityEngine.Networking;
 
 namespace cdc.AssetWorkflow
 {
     public class AssetMgrHelper
     {
-        public Dictionary<string, string> versions = new Dictionary<string, string>();
+        public Dictionary<string, string> curVersions = new Dictionary<string, string>();
         public Dictionary<string, string> localPathRecord = new Dictionary<string, string>();
         public AssetMgrConfig config;
         public HotUpdateProfiler hotUpdateProfiler = new HotUpdateProfiler
@@ -24,7 +22,9 @@ namespace cdc.AssetWorkflow
             get
             {
                 #if UNITY_EDITOR
-                return Path.Combine(Application.dataPath, "..", "LocalAssets");
+                return Path.Combine(Application.dataPath, "..", "Library", "RemoteAssets");
+                #elif UNITY_STANDALONE
+                return Path.Combine(Application.dataPath, "RemoteAssets");
                 #else
                 return Application.persistentDataPath;
                 #endif
@@ -56,7 +56,6 @@ namespace cdc.AssetWorkflow
             HotUpdateProfiler profiler = hotUpdateProfiler;
             profiler.ResetAndSetState(HotUpdateState.LoadLocalVersion);
             Dictionary<string, string> oldVersions = new Dictionary<string, string>();
-            Dictionary<string, string> newVersions = new Dictionary<string, string>();
             LoadFileToVersion(oldVersions);
             await Task.Delay(100);
             if (!config.enablePatch)
@@ -68,15 +67,15 @@ namespace cdc.AssetWorkflow
             string reqUrl = config.serverUrl.TrimEnd('/', '\\');
             var differentBundles = new List<(string name, string version)>();
             {
-                // Update Version.txt
+                // Update Version
                 profiler.ResetAndSetState(HotUpdateState.UpdateVersion);
                 ConvertBytesToVersion(
-                    newVersions,
-                    await Network.DownloadToMemoryAsync($"{reqUrl}/Version.txt")
+                    curVersions,
+                    await Network.DownloadToMemoryAsync($"{reqUrl}/Version")
                 );
 
                 // Compare Version
-                foreach (var kv in versions)
+                foreach (var kv in curVersions)
                 {
                     if (!oldVersions.ContainsKey(kv.Key) || !kv.Value.StrEquals(oldVersions[kv.Key]))
                         differentBundles.Add((name: kv.Key, version: kv.Value));
@@ -88,20 +87,34 @@ namespace cdc.AssetWorkflow
                 if (differentBundles.Count > 0)
                 {
                     var downloadedVersions = new Dictionary<string, string>();
-                    LoadFileToVersion(downloadedVersions, "Version_downloaded.txt");
+                    string tempVerFileName = "Version_downloaded";
+                    // 保证从储存目录加载临时版本文件
+                    localPathRecord[tempVerFileName] = GetLocalSavePath(tempVerFileName);
+                    LoadFileToVersion(downloadedVersions, tempVerFileName);
                     if (!Directory.Exists(AssetSavePath))
                         Directory.CreateDirectory(AssetSavePath);
-                    foreach ((string name, string version) bundle in differentBundles)
+                    using (StreamWriter writer = new StreamWriter(GetLocalSavePath(tempVerFileName), true))
                     {
-                        if (!downloadedVersions.ContainsKey(bundle.name))
+                        foreach ((string name, string version) bundle in differentBundles)
                         {
-                            downloadedVersions[bundle.name] = bundle.version;
-                            string bundleName = ConvertBundleName(bundle.name);
-                            string filePath = GetLocalSavePath(bundleName);
-                            await DownloadToFileAsync($"{reqUrl}/{bundleName}", filePath);
-                            localPathRecord[bundle.name] = filePath;
+                            if (!downloadedVersions.ContainsKey(bundle.name))
+                            {
+                                string bundleName = ConvertToPathIfBundleName(bundle.name);
+                                string filePath = GetLocalSavePath(bundleName);
+                                string url = $"{reqUrl}/{bundleName}";
+                                Debug.Log($"start download {url}");
+                                await Network.DownloadToFileAsync(url, filePath);
+                                downloadedVersions[bundle.name] = bundle.version;
+                                localPathRecord[bundle.name] = filePath;
+                                // 持续记录已经下载的文件，支持端点续传
+                                writer.WriteLine($"{bundle.name}:{bundle.version}");
+                            }
                         }
                     }
+
+                    // 完全更新之后删除的版本文件，并生成正式的文件
+                    File.Delete(GetLocalSavePath(tempVerFileName));
+                    SaveVersionToFile(curVersions);
                 }
             }
 
@@ -109,12 +122,14 @@ namespace cdc.AssetWorkflow
                 profiler.ResetAndSetState(HotUpdateState.LoadFileMap);
             }
 
+            profiler.ResetAndSetState(HotUpdateState.Success);
+            Debug.Log("HotUpdate finished");
         }
 
-        private void LoadFileToVersion(Dictionary<string, string> outVersions, string fileName = "Version.txt")
+        private async void LoadFileToVersion(Dictionary<string, string> outVersions, string fileName = "Version")
         {
             string versionPath = GetLocalLoadPath(fileName);
-            FileSystem.ReadFileLineByLine(
+            await FileSystem.ReadFileLineByLine(
                 versionPath,
                 line => {
                     line = line.Trim();
@@ -128,10 +143,19 @@ namespace cdc.AssetWorkflow
             );
         }
 
+        private void SaveVersionToFile(Dictionary<string, string> versions, string fileName = "Version")
+        {
+            string versionPath = GetLocalSavePath(fileName);
+            using (StreamWriter writer = new StreamWriter(versionPath))
+            {
+                foreach (var kv in versions)
+                    writer.WriteLine($"{kv.Key}:{kv.Value}");
+            }
+        }
+
         private void ConvertBytesToVersion(Dictionary<string, string> outVersions, byte[] bytes)
         {
             string content = Encoding.UTF8.GetString(bytes);
-            Debug.Log($"version content:{content}");
             foreach (string oneLine in content.Split('\n'))
             {
                 string line = oneLine.Trim();
@@ -187,63 +211,13 @@ namespace cdc.AssetWorkflow
             return fileName;
         }
 
-        private Dictionary<string, TaskCompletionSource<bool>> m_pendingReqs = new Dictionary<string, TaskCompletionSource<bool>>();
-
-        private void OnWebRequestComplete(AsyncOperation operation)
+        private Regex m_bundleNameSuffix = new Regex(@"\.ab$", RegexOptions.IgnoreCase);
+        private string ConvertToPathIfBundleName(string originName)
         {
-            UnityWebRequest request = (operation as UnityWebRequestAsyncOperation).webRequest;
-            TaskCompletionSource<bool> tsc;
-            if (m_pendingReqs.TryGetValue(request.url, out tsc))
-                m_pendingReqs.Remove(request.url);
-            if (request.result == UnityWebRequest.Result.Success)
-                tsc?.SetResult(true);
+            if (m_bundleNameSuffix.IsMatch(originName))
+                return $"{originName.Substring(0, 2)}/{originName}";
             else
-                tsc?.SetResult(false);
-        }
-
-        public async ValueTask DownloadAsync(string url, DownloadHandler downloadHandler = null)
-        {
-            using (UnityWebRequest request = UnityWebRequest.Get(url))
-            {
-                request.downloadHandler = downloadHandler;
-                TaskCompletionSource<bool> tsc = new TaskCompletionSource<bool>();
-                m_pendingReqs[url] = tsc;
-                UnityWebRequestAsyncOperation operation = request.SendWebRequest();
-                operation.completed += OnWebRequestComplete;
-                bool isOk = await tsc.Task;
-                if (!isOk)
-                    throw new Exception($"Download {url} failed!");
-            }
-        }
-
-        public ValueTask DownloadToFileAsync(string url, string savePath)
-        {
-            return DownloadAsync(url, new DownloadHandlerFile(savePath));
-        }
-
-        private string ConvertBundleName(string originName)
-        {
-            return $"{originName.Substring(0, 2)}/{originName}";
-        }
-
-        public struct DownloadPending
-        {
-            public TaskCompletionSource<bool> tsc;
-            public UnityWebRequest request;
-
-            public double CalculatedTotalByte
-            {
-                get
-                {
-                    if (request == null)
-                        return 0f;
-                    float progress = request.downloadProgress;
-                    float downloaded = request.downloadedBytes;
-                    if (progress.AlmostEquals(0f))
-                        return 0f;
-                    return ((double)progress)/((double)downloaded);
-                }
-            }
+                return originName;
         }
 
         public struct HotUpdateProfiler
