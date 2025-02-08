@@ -8,7 +8,7 @@ AssetWorkow旨在为Unity开发者提供一个一站式资源管理框架，包�
 3. 也可以直接作为子模块添加到Assets目录下，这样在使用的同时也可以对他进行修改
 
 ## 使用
-- 
+- 工具栏Asset Workflow->Operation中可以进行配置和操作资源包清理和构建
 
 ## AssetBundle构建过程
 - 指定一个根目录，在根目录中以文件夹为单位构建ab包
