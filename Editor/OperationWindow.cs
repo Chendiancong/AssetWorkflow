@@ -1,3 +1,4 @@
+using System.IO;
 using UnityEditor;
 using UnityEngine;
 
@@ -31,7 +32,20 @@ namespace cdc.AssetWorkflow.Editor
 
                 if (!MyStyles.Toggle(m_settingObj.FindProperty("useDefaultOutputPath"), MyStyles.GetContent("Use Default OutputPath")))
                 {
-                    EditorGUILayout.PropertyField(m_settingObj.FindProperty("customOutputPath"), MyStyles.GetContent("OutputPath"));
+                    EditorGUILayout.BeginHorizontal();
+                    var prop = m_settingObj.FindProperty("customOutputPath");
+                    string input = prop.stringValue;
+                    EditorGUILayout.PropertyField(prop, MyStyles.GetContent("Custom Path"));
+                    if (GUILayout.Button(MyStyles.GetContent("Select Folder"), m_maxWidth_100))
+                    {
+                        string selectedPath = EditorUtility.OpenFolderPanel("Select Folder", Path.GetDirectoryName(input), "");
+                        if (!string.IsNullOrEmpty(selectedPath) && !input.StrEquals(selectedPath))
+                        {
+                            input = selectedPath;
+                            prop.stringValue = input;
+                        }
+                    }
+                    EditorGUILayout.EndHorizontal();
                 }
             }
 

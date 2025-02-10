@@ -17,4 +17,4 @@ MonoBehaviour:
   enablePatch: 1
   serverUrl: http://localhost:8080/game-asset
   useDefaultOutputPath: 0
-  customOutputPath: G:/TestWebServer/game-asset/
+  customOutputPath: G:/TestWebServer/game-asset
