@@ -1,13 +1,12 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using UnityEngine;
 
 namespace cdc.AssetWorkflow
 {
-    public class AssetMgr : IAssetLoader, IAssetManager
+    internal class AssetMgr : IAssetManager
     {
         private AssetMgrHelper m_helper;
         private Dictionary<string, IBaseAsset> m_cachedAssets;
@@ -19,41 +18,97 @@ namespace cdc.AssetWorkflow
             m_cachedAssets = new Dictionary<string, IBaseAsset>();
         }
 
-        public void Init()
+        public async ValueTask Initial()
         {
             m_helper.LoadSetting();
+            await m_helper.HotUpdate();
+            await m_helper.PrepareAssetMap();
+            m_manifest = await LoadManifest();
         }
 
-        public async ValueTask HotUpdate()
+        public async ValueTask LoadBundleDependencies(string bundleName)
         {
-            await m_helper.HotUpdate();
+            if (bundleName.StrEquals(m_helper.config.manifestName))
+                return;
+            foreach (string dep in m_manifest.GetDirectDependencies(bundleName))
+            {
+                var bundle = MakeAssetBundle(dep) as ManagedAssetBundle;
+                Debugger.Log($"prepare dep bundle {bundle.name}");
+                await bundle.Get();
+                bundle.AddRef();
+            }
         }
 
         #region IAssetLoader
-        private Regex m_resourcePath = new Regex(@"^Assets[//]Resources");
-        public void LoadAsset(string assetPath, Action<Exception, IAssetHandle> onLoaded)
+        private Regex m_resourcesPrefix = new Regex(@"^Assets/Resources");
+        public IAssetHandle MakeAsset(string assetName)
         {
-            string dataPath = $"Asset/{assetPath}";
-            if (m_resourcePath.IsMatch(dataPath))
-                LoadFromResources(assetPath)
-                    .AsTask()
-                    .ContinueWith(task => onLoaded(task.Exception, task.Result));
+            assetName = $"Assets/{assetName}";
+            if (m_resourcesPrefix.IsMatch(assetName))
+                return MakeAssetFromResources(assetName).CastToHandle<IAssetHandle>();
+            else
+                return MakeAssetFromBundle(assetName).CastToHandle<IAssetHandle>();
 
         }
 
-        public ValueTask<IAssetHandle> LoadAsset(string assetPath)
+        private IBaseAsset MakeAssetFromResources(string assetName)
         {
-            throw new NotImplementedException();
+            IBaseAsset asset;
+            if (m_cachedAssets.TryGetValue(assetName, out asset))
+                return asset;
+            else
+            {
+                asset = new ManagedResourceAsset(m_resourcesPrefix.Replace(assetName, ""));
+                m_cachedAssets[assetName] = asset;
+                return asset;
+            }
         }
 
-        private ValueTask<IAssetHandle> LoadFromResources(string assetPath)
+        private IBaseAsset MakeAssetFromBundle(string assetName)
         {
-            throw new NotImplementedException();
+            string bundlePath;
+            if (!m_helper.AssetNameToBundleName(assetName, out bundlePath))
+                throw new Exception($"missing asset bundle for {assetName}");
+            var bundle = MakeAssetBundle(bundlePath) as ManagedAssetBundle;
+            return bundle.GetAsset(assetName);
+        }
+
+        private IBaseAsset MakeAssetBundle(string bundleName)
+        {
+            IBaseAsset asset;
+            if (!m_cachedAssets.TryGetValue(bundleName, out asset))
+            {
+                asset = new ManagedAssetBundle(
+                    bundleName,
+                    m_helper.GetLocalLoadPath(bundleName),
+                    this
+                );
+                m_cachedAssets[bundleName] = asset;
+            }
+            return asset;
+        }
+
+        public void DebugInfo(bool flag)
+        {
+            Debugger.enabled = flag;
         }
 
         #endregion
 
-        #region IAssetManager
-        #endregion
+        private async ValueTask<AssetBundleManifest> LoadManifest()
+        {
+            string manifestName = m_helper.config.manifestName;
+            string manifestPath = m_helper.GetLocalLoadPath(manifestName);
+            ManagedAssetBundle bundleAsset = new ManagedAssetBundle(
+                manifestName,
+                manifestPath,
+                this
+            );
+            Debugger.Log($"manifest bundle is {manifestName}, located in {manifestPath}");
+            m_cachedAssets[$"manifest->{manifestName}"] = bundleAsset;
+            ManagedAsset asset = bundleAsset.GetAsset("AssetBundleManifest");
+            asset.AddRef();
+            return await asset.Cast<AssetBundleManifest>();
+        }
     }
 }

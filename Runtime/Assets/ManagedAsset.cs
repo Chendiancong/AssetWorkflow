@@ -18,7 +18,7 @@ namespace cdc.AssetWorkflow
         private void OnAssetComplete(AsyncOperation operation)
         {
             var req = operation as AssetBundleRequest;
-            if (req.isDone)
+            if (req.asset != null)
             {
                 asset = req.asset;
                 state = ManagedAssetState.Loaded;
@@ -36,12 +36,29 @@ namespace cdc.AssetWorkflow
 
         public override ValueTask<UnityEngine.Object> Get()
         {
+            return InternalGet(typeof(UnityEngine.Object));
+        }
+
+        public async ValueTask<AssetType> Cast<AssetType>()
+            where AssetType : UnityEngine.Object
+        {
+            return await InternalGet(typeof(AssetType)) as AssetType;
+        }
+
+        private async ValueTask<UnityEngine.Object> InternalGet(Type type)
+        {
+            var asset = await InternalLoadAsset(type, await bundle.Get());
+            return asset;
+        }
+
+        private ValueTask<UnityEngine.Object> InternalLoadAsset(Type type, AssetBundle assetBundle)
+        {
             switch (state)
             {
                 case ManagedAssetState.Initial:
                     {
                         m_promise = new TaskCompletionSource<UnityEngine.Object>();
-                        AssetBundleRequest req = bundle.asset.LoadAssetAsync(name);
+                        AssetBundleRequest req = assetBundle.LoadAssetAsync(name, type);
                         req.completed += OnAssetComplete;
                         getProgress = () => req.progress;
                         return new ValueTask<UnityEngine.Object>(m_promise.Task);
@@ -53,12 +70,6 @@ namespace cdc.AssetWorkflow
                 default:
                     throw new Exception($"Error state:{state}");
             }
-        }
-
-        public async ValueTask<AssetType> Cast<AssetType>()
-            where AssetType : UnityEngine.Object
-        {
-            return await Get() as AssetType;
         }
 
         protected override void OnUse()

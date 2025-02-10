@@ -45,6 +45,7 @@ namespace cdc.AssetWorkflow.Editor
             var list = new List<AssetBundleBuild>();
             helper.CollectAssets(EditorFileSystem.BundleRootPath, list);
             helper.GenerateAssetFileMap(list);
+            helper.GenerateAssetFileVersions();
             AssetDatabase.Refresh();
         }
 
@@ -59,6 +60,7 @@ namespace cdc.AssetWorkflow.Editor
         private static void GenerateSettingFile()
         {
             helper.GenerateSettingFile();
+            helper.GenerateAssetFileVersions();
             AssetDatabase.Refresh();
         }
 
@@ -103,8 +105,8 @@ namespace cdc.AssetWorkflow.Editor
             );
 
             helper.GenerateAssetFileMap(list);
-            helper.GenerateAssetFileVersions();
             helper.GenerateSettingFile();
+            helper.GenerateAssetFileVersions();
 
             AssetDatabase.Refresh();
         }
