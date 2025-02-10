@@ -10,13 +10,15 @@ namespace cdc.AssetWorkflow
         public string bundlePath;
         public string version;
         public Dictionary<string, ManagedAsset> loadedAssets;
+        private AssetMgr m_assetMgr;
 
         string IAssetBundleHandle.Path => bundlePath;
 
-        public ManagedAssetBundle(string bundleName, string bundlePath) : base()
+        public ManagedAssetBundle(string bundleName, string bundlePath, AssetMgr mgr) : base()
         {
             name = bundleName;
             this.bundlePath = bundlePath;
+            m_assetMgr = mgr;
             loadedAssets = new Dictionary<string, ManagedAsset>();
         }
 
@@ -40,19 +42,23 @@ namespace cdc.AssetWorkflow
             }
         }
 
+        private async ValueTask<AssetBundle> InternalGet()
+        {
+            state = ManagedAssetState.Loading;
+            await m_assetMgr.LoadBundleDependencies(name);
+            m_promise = new TaskCompletionSource<AssetBundle>();
+            AssetBundleCreateRequest req = AssetBundle.LoadFromFileAsync(bundlePath);
+            req.completed += OnBundleComplete;
+            getProgress = () => req.progress;
+            return await m_promise.Task;
+        }
+
         public override ValueTask<AssetBundle> Get()
         {
             switch (state)
             {
                 case ManagedAssetState.Initial:
-                    {
-                        state = ManagedAssetState.Loading;
-                        m_promise = new TaskCompletionSource<AssetBundle>();
-                        AssetBundleCreateRequest req = AssetBundle.LoadFromFileAsync(bundlePath);
-                        req.completed += OnBundleComplete;
-                        getProgress = () => req.progress;
-                        return new ValueTask<AssetBundle>(m_promise.Task);
-                    }
+                    return InternalGet();
                 case ManagedAssetState.Loading:
                     return new ValueTask<AssetBundle>(m_promise.Task);
                 case ManagedAssetState.Loaded:

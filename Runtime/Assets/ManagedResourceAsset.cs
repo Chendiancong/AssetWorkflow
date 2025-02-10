@@ -32,12 +32,23 @@ namespace cdc.AssetWorkflow
         }
         public override ValueTask<UnityEngine.Object> Get()
         {
+            return InternalGet(typeof(UnityEngine.Object));
+        }
+
+        public async ValueTask<AssetType> Cast<AssetType>()
+            where AssetType : UnityEngine.Object
+        {
+            return await InternalGet(typeof(AssetType)) as AssetType;
+        }
+
+        private ValueTask<UnityEngine.Object> InternalGet(Type type)
+        {
             switch (state)
             {
                 case ManagedAssetState.Initial:
                     {
                         m_promise = new TaskCompletionSource<UnityEngine.Object>();
-                        ResourceRequest req = Resources.LoadAsync(name);
+                        ResourceRequest req = Resources.LoadAsync(name, type);
                         req.completed += OnAssetComplete;
                         getProgress = () => req.progress;
                         return new ValueTask<UnityEngine.Object>(m_promise.Task);
@@ -49,12 +60,6 @@ namespace cdc.AssetWorkflow
                 default:
                     throw new Exception($"Error state:{state}");
             }
-        }
-
-        public async ValueTask<AssetType> Cast<AssetType>()
-            where AssetType : UnityEngine.Object
-        {
-            return await Get() as AssetType;
         }
 
         protected override void OnUnuse()

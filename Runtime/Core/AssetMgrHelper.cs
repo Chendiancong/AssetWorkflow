@@ -11,6 +11,7 @@ namespace cdc.AssetWorkflow
     {
         public Dictionary<string, string> curVersions = new Dictionary<string, string>();
         public Dictionary<string, string> localPathRecord = new Dictionary<string, string>();
+        public Dictionary<string, string> assetMap = new Dictionary<string, string>();
         public AssetMgrConfig config;
         public HotUpdateProfiler hotUpdateProfiler = new HotUpdateProfiler
         {
@@ -31,28 +32,23 @@ namespace cdc.AssetWorkflow
             }
         }
 
-        private Regex m_fileExtension = new Regex(@"\.[^\.]+$");
-
         public void LoadSetting()
         {
             string settingPath = GetLocalLoadPath("Setting.json");
             string jsonString;
+            Debugger.Log($"load setting from {settingPath}");
             using (StreamReader reader = new StreamReader(settingPath))
             {
                 jsonString = reader.ReadToEnd();
             }
             AssetMgrConfig setting = JsonUtility.FromJson<AssetMgrConfig>(jsonString);
             config = setting;
-        }
-
-
-        public void PrepareFileMap()
-        {
-
+            Debugger.Log($"ok => {ObjectDumper.Dump(setting)}");
         }
 
         public async ValueTask HotUpdate()
         {
+            Debugger.Log("start hot update");
             HotUpdateProfiler profiler = hotUpdateProfiler;
             profiler.ResetAndSetState(HotUpdateState.LoadLocalVersion);
             Dictionary<string, string> oldVersions = new Dictionary<string, string>();
@@ -61,14 +57,16 @@ namespace cdc.AssetWorkflow
             if (!config.enablePatch)
             {
                 profiler.SetState(HotUpdateState.Success);
+                Debugger.Log("hot update finished");
                 return;
             }
 
             string reqUrl = config.serverUrl.TrimEnd('/', '\\');
-            var differentBundles = new List<(string name, string version)>();
+            var differentAssets = new List<(string name, string version)>();
             {
                 // Update Version
                 profiler.ResetAndSetState(HotUpdateState.UpdateVersion);
+                Debugger.Log($"download ${reqUrl}/Version");
                 ConvertBytesToVersion(
                     curVersions,
                     await Network.DownloadToMemoryAsync($"{reqUrl}/Version")
@@ -78,13 +76,13 @@ namespace cdc.AssetWorkflow
                 foreach (var kv in curVersions)
                 {
                     if (!oldVersions.ContainsKey(kv.Key) || !kv.Value.StrEquals(oldVersions[kv.Key]))
-                        differentBundles.Add((name: kv.Key, version: kv.Value));
+                        differentAssets.Add((name: kv.Key, version: kv.Value));
                 }
             }
 
             {
                 profiler.ResetAndSetState(HotUpdateState.UpdateAsset);
-                if (differentBundles.Count > 0)
+                if (differentAssets.Count > 0)
                 {
                     var downloadedVersions = new Dictionary<string, string>();
                     string tempVerFileName = "Version_downloaded";
@@ -95,19 +93,19 @@ namespace cdc.AssetWorkflow
                         Directory.CreateDirectory(AssetSavePath);
                     using (StreamWriter writer = new StreamWriter(GetLocalSavePath(tempVerFileName), true))
                     {
-                        foreach ((string name, string version) bundle in differentBundles)
+                        foreach ((string name, string version) assetInfo in differentAssets)
                         {
-                            if (!downloadedVersions.ContainsKey(bundle.name))
+                            string assetName = ConvertIfBundleName(assetInfo.name);
+                            if (!downloadedVersions.ContainsKey(assetName))
                             {
-                                string bundleName = ConvertToPathIfBundleName(bundle.name);
-                                string filePath = GetLocalSavePath(bundleName);
-                                string url = $"{reqUrl}/{bundleName}";
-                                Debug.Log($"start download {url}");
+                                string filePath = GetLocalSavePath(assetName);
+                                string url = $"{reqUrl}/{assetName}";
+                                Debugger.Log($"download {url}");
                                 await Network.DownloadToFileAsync(url, filePath);
-                                downloadedVersions[bundle.name] = bundle.version;
-                                localPathRecord[bundle.name] = filePath;
+                                downloadedVersions[assetInfo.name] = assetInfo.version;
+                                localPathRecord[assetName] = filePath;
                                 // 持续记录已经下载的文件，支持端点续传
-                                writer.WriteLine($"{bundle.name}:{bundle.version}");
+                                writer.WriteLine($"{assetInfo.name}:{assetInfo.version}");
                             }
                         }
                     }
@@ -119,11 +117,12 @@ namespace cdc.AssetWorkflow
             }
 
             {
-                profiler.ResetAndSetState(HotUpdateState.LoadFileMap);
+                // reload Setting.json
+                LoadSetting();
             }
 
             profiler.ResetAndSetState(HotUpdateState.Success);
-            Debug.Log("HotUpdate finished");
+            Debugger.Log("hot update finished");
         }
 
         private async void LoadFileToVersion(Dictionary<string, string> outVersions, string fileName = "Version")
@@ -166,6 +165,23 @@ namespace cdc.AssetWorkflow
                     return;
                 outVersions[sections[0]] = sections[1];
             }
+        }
+
+        public async ValueTask PrepareAssetMap()
+        {
+            string filePath = GetLocalLoadPath("AssetMap");
+            await FileSystem.ReadFileLineByLine(
+                filePath,
+                line =>
+                {
+                    if (string.IsNullOrEmpty(line))
+                        return;
+                    string[] sections = line.Split(':');
+                    if (sections.Length != 2 || string.IsNullOrEmpty(sections[0]) || string.IsNullOrEmpty(sections[1]))
+                        return;
+                    assetMap[sections[0]] = sections[1];
+                }
+            );
         }
 
         /// <summary>
@@ -211,8 +227,22 @@ namespace cdc.AssetWorkflow
             return fileName;
         }
 
+        /// <summary>
+        /// 将资源名转换为对应assetbundle名称
+        /// </summary>
+        /// <returns>是否找到合适的assetbundle</returns>
+        public bool AssetNameToBundleName(string assetName, out string bundleName)
+        {
+            return assetMap.TryGetValue(assetName, out bundleName);
+        }
+
         private Regex m_bundleNameSuffix = new Regex(@"\.ab$", RegexOptions.IgnoreCase);
-        private string ConvertToPathIfBundleName(string originName)
+        /// <summary>
+        /// 转换为目录形式的AssetBundle名称
+        /// </summary>
+        /// <param name="originName"></param>
+        /// <returns></returns>
+        public string ConvertIfBundleName(string originName)
         {
             if (m_bundleNameSuffix.IsMatch(originName))
                 return $"{originName.Substring(0, 2)}/{originName}";
@@ -234,7 +264,11 @@ namespace cdc.AssetWorkflow
                 downloadSpeed = 0f;
             }
 
-            public void SetState(HotUpdateState state) => this.state = state;
+            public void SetState(HotUpdateState state)
+            {
+                this.state = state;
+                Debugger.Log($"hot update {state}");
+            }
 
             public void ResetAndSetState(HotUpdateState state)
             {
@@ -252,8 +286,6 @@ namespace cdc.AssetWorkflow
             UpdateVersionFail,
             UpdateAsset,
             UpdateAssetFail,
-            LoadFileMap,
-            LoadFileMapFail,
             Success,
         }
     }

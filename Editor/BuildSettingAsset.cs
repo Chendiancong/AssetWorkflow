@@ -85,7 +85,7 @@ namespace cdc.AssetWorkflow.Editor
             var config = new AssetMgrConfig();
             config.enablePatch = enablePatch;
             config.bundleRootPath = rootPath;
-            config.manifestName = Path.GetFileName(OutputPath);
+            config.manifestName = Path.GetFileName(OutputPath.TrimEnd('/'));
             config.serverUrl = serverUrl;
             return config;
         }

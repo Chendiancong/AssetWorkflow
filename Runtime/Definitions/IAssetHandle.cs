@@ -45,6 +45,10 @@ namespace cdc.AssetWorkflow
 
     public interface IAssetHandle : IHandle<UnityEngine.Object>
     {
+        /// <summary>
+        /// 获取特定类型的资源对象
+        /// </summary>
+        /// <typeparam name="AssetType"></typeparam>
         ValueTask<AssetType> Cast<AssetType>()
             where AssetType : UnityEngine.Object;
     }
