@@ -27,20 +27,36 @@ namespace cdc.AssetWorkflow.Editor
         [Tooltip("资源服务器地址")]
         public string serverUrl = "http://localhost";
         /// <summary>
-        /// 是否使用默认输出目录（Application.streamingAssetsPath），
+        /// 是否使用自定义输出目录
         /// 自定义目录可以是绝对目录也可以是相对目录，相对目录以项目目录为起始目录
+        /// 否则使用默认输出目录（Application.streamingAssetsPath），
         /// </summary>
-        [Tooltip("是否使用默认的输出目录（Application.streamingAssetsPath）\n自定义目录可以是绝对目录也可以是相对目录，相对目录以项目目录为起始目录")]
-        public bool useDefaultOutputPath = false;
+        [Tooltip("是否使用自定义的输出目录\n自定义目录可以是绝对目录也可以是相对目录，相对目录以项目目录为起始目录\n否则使用默认的输出目录(Application.streamingAssetsPath)")]
+        public bool useCustomOutputPath = false;
         /// <summary>
         /// 自定义输出目录
         /// </summary>
         [Tooltip("自定义输出目录")]
         public string customOutputPath = "Assets/StreamingAssets";
         /// <summary>
+        /// 是否使用自定义的构建平台
+        /// 默认为当前激活的平台
+        /// </summary>
+        [Tooltip("是否使用自定义的构建平台\n默认为当前激活的平台")]
+        public bool useCustomBuildTarget = false;
+        /// <summary>
+        /// 自定义的构建平台
+        /// </summary>
+        [Tooltip("自定义的构建平台\n选择NoTarget则为当前平台")]
+        public BuildTarget buildTarget = BuildTarget.NoTarget;
+        /// <summary>
+        /// 当前需要OperationWindow需要执行哪一项操作
+        /// </summary>
+        public OperationType operationType = OperationType.NormalBuild;
+        /// <summary>
         /// asset bundle的输出目录(系统本地目录)
         /// </summary>
-        public string OutputPath => useDefaultOutputPath ?
+        public string OutputPath => !useCustomOutputPath ?
             Application.streamingAssetsPath :
             customOutputPath;
 
@@ -95,6 +111,18 @@ namespace cdc.AssetWorkflow.Editor
             No = 1,
             ChunkedCompress,
             FullCompress
+        }
+
+        public enum OperationType
+        {
+            [InspectorName("选择需要执行的操作")]
+            NoSelect,
+            [InspectorName("增量构建")]
+            NormalBuild,
+            [InspectorName("重新构建")]
+            ForceBuild,
+            [InspectorName("清理构建目录")]
+            Clean,
         }
     }
 }

@@ -14,33 +14,24 @@ namespace cdc.AssetWorkflow.Editor
     {
         public static Helper helper = new Helper();
 
-        [MenuItem("Asset Workflow/Normal Build", priority = 200)]
-        public static void NormalBuild()
+        public static void BuildBundle(BuilderCommand cmd = default)
         {
             BuilderProcessorAttribute.ExecutePhase(BuilderProcessorPhase.PreBuild);
-            InternalBuild(false);
+            InternalBuild(ref cmd);
             BuilderProcessorAttribute.ExecutePhase(BuilderProcessorPhase.PostBuild);
         }
 
-        [MenuItem("Asset Workflow/Force Build", priority = 201)]
-        public static void ForceBuild()
-        {
-            BuilderProcessorAttribute.ExecutePhase(BuilderProcessorPhase.PreBuild);
-            InternalBuild(true);
-            BuilderProcessorAttribute.ExecutePhase(BuilderProcessorPhase.PostBuild);
-        }
-
-        [MenuItem("Asset Workflow/Clean", priority = 202)]
-        public static void Clean()
+        public static void Clean(BuilderCommand option = default)
         {
             BuilderProcessorAttribute.ExecutePhase(BuilderProcessorPhase.PreClean);
             string targetPath = EditorFileSystem.BundleOutputPath;
+            Debug.Log($"clean target path is {targetPath}");
             EditorFileSystem.CleanDirectory(targetPath);
+            AssetDatabase.Refresh();
             BuilderProcessorAttribute.ExecutePhase(BuilderProcessorPhase.PostClean);
         }
 
-        [MenuItem("Asset Workflow/GenerateAssetFileMap", priority = 203)]
-        private static void GenerateAssetFileMap()
+        public static void GenerateAssetFileMap(BuilderCommand option = default)
         {
             var list = new List<AssetBundleBuild>();
             helper.CollectAssets(EditorFileSystem.BundleRootPath, list);
@@ -49,22 +40,19 @@ namespace cdc.AssetWorkflow.Editor
             AssetDatabase.Refresh();
         }
 
-        [MenuItem("Asset Workflow/GenerateAssetFileVersions", priority = 204)]
-        private static void GenerateAssetFileVersions()
+        public static void GenerateAssetFileVersions(BuilderCommand option = default)
         {
             helper.GenerateAssetFileVersions();
             AssetDatabase.Refresh();
         }
 
-        [MenuItem("Asset Workflow/GenerateSettingFile", priority = 205)]
-        private static void GenerateSettingFile()
+        public static void GenerateSettingFile(BuilderCommand option = default)
         {
             helper.GenerateSettingFile();
             helper.GenerateAssetFileVersions();
             AssetDatabase.Refresh();
         }
 
-        // [MenuItem("Bundle Workflow/Test", priority = 206)]
         private static void Test()
         {
             // string input = Path.Combine(Application.dataPath, UniPath.BundleRootPath);
@@ -83,9 +71,9 @@ namespace cdc.AssetWorkflow.Editor
             // bundle.Unload(true);
         }
 
-        private static void InternalBuild(bool forceRebuild)
+        private static void InternalBuild(ref BuilderCommand command)
         {
-            var platform = EditorUserBuildSettings.activeBuildTarget;
+            BuildTarget platform = command.GetTrulyBuildTarget();
             var list = new List<AssetBundleBuild>();
             helper.CollectAssets(EditorFileSystem.BundleRootPath, list);
             var targetPath = EditorFileSystem.BundleOutputPath;
@@ -94,9 +82,9 @@ namespace cdc.AssetWorkflow.Editor
             var buildOption = BuildAssetBundleOptions.None;
 
             BuildSettingAsset.Instance.ConvertCompressType(ref buildOption);
-            if (forceRebuild)
-                buildOption |= BuildAssetBundleOptions.ForceRebuildAssetBundle;
+            buildOption |= command.options;
 
+            Debug.Log($"Distribute path is {targetPath}");
             BuildPipeline.BuildAssetBundles(
                 targetPath,
                 list.ToArray(),

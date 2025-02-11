@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Text.RegularExpressions;
+using UnityEditor;
 using UnityEngine;
 
 namespace cdc.AssetWorkflow.Editor
@@ -16,7 +17,7 @@ namespace cdc.AssetWorkflow.Editor
         /// </summary>
         public static string BundleOutputPath => BuildSettingAsset.Instance.OutputPath;
 
-        private static Regex m_dataPathReg = new Regex($@"^\b{Application.dataPath}\b[\\\/]?");
+        private static Regex m_dataPathReg = new Regex($@"^\b{Application.dataPath}\b[\\/]?");
         /// <summary>
         /// 将本地路径转换为项目路径，即Assets/...，且统一以反斜杠位分隔符
         /// </summary>
@@ -28,7 +29,7 @@ namespace cdc.AssetWorkflow.Editor
         }
 
         /// <summary>
-        /// 将本地路径转换为对应的asset bundle名称
+        /// 将本地路径转换为特定的asset bundle名称
         /// </summary>
         public static string LocalPathToAssetBundleName(string localPath)
         {

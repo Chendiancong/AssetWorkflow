@@ -1,4 +1,5 @@
 using System.IO;
+using Codice.Client.GameUI.Checkin.DifferencesApplier;
 using UnityEditor;
 using UnityEngine;
 
@@ -23,14 +24,14 @@ namespace cdc.AssetWorkflow.Editor
             m_settingObj.Update();
 
             EditorGUILayout.LabelField(MyStyles.GetContent("Settings"));
-            EditorGUILayout.PropertyField(m_settingObj.FindProperty("rootPath"), MyStyles.GetContent("Root Path"));
-            EditorGUILayout.PropertyField(m_settingObj.FindProperty("compressType"), MyStyles.GetContent("Compress Type"));
+            EditorGUILayout.PropertyField(m_settingObj.FindProperty("rootPath"));
+            EditorGUILayout.PropertyField(m_settingObj.FindProperty("compressType"));
 
-            if (MyStyles.Toggle(m_settingObj.FindProperty("enablePatch"), MyStyles.GetContent("Enable Patch")))
+            if (MyStyles.ToggleField(m_settingObj.FindProperty("enablePatch")))
             {
-                EditorGUILayout.PropertyField(m_settingObj.FindProperty("serverUrl"), MyStyles.GetContent("Server Url"));
+                EditorGUILayout.PropertyField(m_settingObj.FindProperty("serverUrl"));
 
-                if (!MyStyles.Toggle(m_settingObj.FindProperty("useDefaultOutputPath"), MyStyles.GetContent("Use Default OutputPath")))
+                if (MyStyles.ToggleField(m_settingObj.FindProperty("useCustomOutputPath")))
                 {
                     EditorGUILayout.BeginHorizontal();
                     var prop = m_settingObj.FindProperty("customOutputPath");
@@ -49,15 +50,46 @@ namespace cdc.AssetWorkflow.Editor
                 }
             }
 
+            EnumOperation();
 
             m_settingObj.ApplyModifiedProperties();
+        }
 
-            EditorGUILayout.BeginHorizontal();
-            if (GUILayout.Button(MyStyles.GetContent("Build"), m_maxWidth_100))
-                Builder.NormalBuild();
-            if (GUILayout.Button(MyStyles.GetContent("Clean"), m_maxWidth_100))
-                Builder.Clean();
-            EditorGUILayout.EndHorizontal();
+        private void EnumOperation()
+        {
+            var opType = MyStyles.EnumField<BuildSettingAsset.OperationType>(m_settingObj.FindProperty("operationType"));
+            if (opType == BuildSettingAsset.OperationType.NoSelect)
+                return;
+            else
+            {
+                BuildTarget buildTarget = BuildTarget.NoTarget;
+                EditorGUILayout.BeginHorizontal();
+                if (MyStyles.ToggleField(m_settingObj.FindProperty("useCustomBuildTarget"), null))
+                    buildTarget = MyStyles.EnumField<BuildTarget>(m_settingObj.FindProperty("buildTarget"));
+                EditorGUILayout.EndHorizontal();
+                if (GUILayout.Button(MyStyles.GetContent("Doit"), GUILayout.Width(100)))
+                {
+                    switch (opType)
+                    {
+                        case BuildSettingAsset.OperationType.NormalBuild:
+                            Builder.BuildBundle(new BuilderCommand() {
+                                buildTarget = buildTarget,
+                            });
+                            break;
+                        case BuildSettingAsset.OperationType.ForceBuild:
+                            Builder.BuildBundle(new BuilderCommand() {
+                                buildTarget = buildTarget,
+                                options = BuildAssetBundleOptions.ForceRebuildAssetBundle
+                            });
+                            break;
+                        case BuildSettingAsset.OperationType.Clean:
+                            Builder.Clean(new BuilderCommand() {
+                                buildTarget = buildTarget
+                            });
+                            break;
+                    }
+                }
+            }
         }
     }
 }
