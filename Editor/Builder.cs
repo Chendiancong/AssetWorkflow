@@ -24,32 +24,32 @@ namespace cdc.AssetWorkflow.Editor
         public static void Clean(BuilderCommand option = default)
         {
             BuilderProcessorAttribute.ExecutePhase(BuilderProcessorPhase.PreClean);
-            string targetPath = EditorFileSystem.BundleOutputPath;
+            string targetPath = EditorFileSystem.GetOutputPath(option.GetTrulyBuildTarget());
             Debug.Log($"clean target path is {targetPath}");
             EditorFileSystem.CleanDirectory(targetPath);
             AssetDatabase.Refresh();
             BuilderProcessorAttribute.ExecutePhase(BuilderProcessorPhase.PostClean);
         }
 
-        public static void GenerateAssetFileMap(BuilderCommand option = default)
+        public static void GenerateAssetFileMap(BuilderCommand command = default)
         {
             var list = new List<AssetBundleBuild>();
             helper.CollectAssets(EditorFileSystem.BundleRootPath, list);
-            helper.GenerateAssetFileMap(list);
-            helper.GenerateAssetFileVersions();
+            helper.GenerateAssetFileMap(list, ref command);
+            helper.GenerateAssetFileVersions(ref command);
             AssetDatabase.Refresh();
         }
 
-        public static void GenerateAssetFileVersions(BuilderCommand option = default)
+        public static void GenerateAssetFileVersions(BuilderCommand command = default)
         {
-            helper.GenerateAssetFileVersions();
+            helper.GenerateAssetFileVersions(ref command);
             AssetDatabase.Refresh();
         }
 
-        public static void GenerateSettingFile(BuilderCommand option = default)
+        public static void GenerateSettingFile(BuilderCommand command = default)
         {
-            helper.GenerateSettingFile();
-            helper.GenerateAssetFileVersions();
+            helper.GenerateSettingFile(ref command);
+            helper.GenerateAssetFileVersions(ref command);
             AssetDatabase.Refresh();
         }
 
@@ -76,7 +76,7 @@ namespace cdc.AssetWorkflow.Editor
             BuildTarget platform = command.GetTrulyBuildTarget();
             var list = new List<AssetBundleBuild>();
             helper.CollectAssets(EditorFileSystem.BundleRootPath, list);
-            var targetPath = EditorFileSystem.BundleOutputPath;
+            var targetPath = EditorFileSystem.GetOutputPath(command.GetTrulyBuildTarget());
             if (!Directory.Exists(targetPath))
                 Directory.CreateDirectory(targetPath);
             var buildOption = BuildAssetBundleOptions.None;
@@ -92,9 +92,9 @@ namespace cdc.AssetWorkflow.Editor
                 platform
             );
 
-            helper.GenerateAssetFileMap(list);
-            helper.GenerateSettingFile();
-            helper.GenerateAssetFileVersions();
+            helper.GenerateAssetFileMap(list, ref command);
+            helper.GenerateSettingFile(ref command);
+            helper.GenerateAssetFileVersions(ref command);
 
             AssetDatabase.Refresh();
         }
@@ -139,7 +139,7 @@ namespace cdc.AssetWorkflow.Editor
                 Debug.Log("Collect assets ok.");
             }
 
-            public void GenerateAssetFileMap(List<AssetBundleBuild> list)
+            public void GenerateAssetFileMap(List<AssetBundleBuild> list, ref BuilderCommand command)
             {
                 var dic = new Dictionary<string, string>();
                 foreach (AssetBundleBuild build in list)
@@ -150,7 +150,8 @@ namespace cdc.AssetWorkflow.Editor
 
                 {
                     // manifest file
-                    string manifestName = Path.GetFileName(EditorFileSystem.BundleOutputPath);
+                    string targetPath = EditorFileSystem.GetOutputPath(command.GetTrulyBuildTarget());
+                    string manifestName = Path.GetFileName(targetPath);
                     dic[manifestName] = manifestName;
                 }
 
@@ -160,7 +161,10 @@ namespace cdc.AssetWorkflow.Editor
                     sb.AppendLine($"{kv.Key}:{kv.Value}");
                 }
 
-                string filePath = Path.Combine(EditorFileSystem.BundleOutputPath, "AssetMap");
+                string filePath = Path.Combine(
+                    EditorFileSystem.GetOutputPath(command.GetTrulyBuildTarget()),
+                    "AssetMap"
+                );
                 using (var writer = new StreamWriter(filePath))
                 {
                     writer.Write(sb.ToString());
@@ -169,15 +173,18 @@ namespace cdc.AssetWorkflow.Editor
                 Debug.Log("Mapping file generated successfully.");
             }
 
-            public void GenerateAssetFileVersions()
+            public void GenerateAssetFileVersions(ref BuilderCommand command)
             {
-                string filePath = Path.Combine(EditorFileSystem.BundleOutputPath, "Version");
+                string filePath = Path.Combine(
+                    EditorFileSystem.GetOutputPath(command.GetTrulyBuildTarget()),
+                    "Version"
+                );
                 if (File.Exists(filePath))
                     File.Delete(filePath);
                 var sb = new StringBuilder();
                 var ignoreEnd = new Regex(@"\.(meta|manifest)$", RegexOptions.IgnoreCase);
                 EditorFileSystem.WalkDirectory(
-                    EditorFileSystem.BundleOutputPath,
+                    EditorFileSystem.GetOutputPath(command.GetTrulyBuildTarget()),
                     (di, fi) => {
                         // 不需要计算meta文件和manifest文件
                         if (ignoreEnd.IsMatch(fi.Name))
@@ -195,10 +202,10 @@ namespace cdc.AssetWorkflow.Editor
                 Debug.Log("Version file generated successfully.");
             }
 
-            public void GenerateSettingFile()
+            public void GenerateSettingFile(ref BuilderCommand command)
             {
                 string settingName = "Setting.json";
-                AssetMgrConfig config = BuildSettingAsset.Instance.CreateConfig();
+                AssetMgrConfig config = BuildSettingAsset.Instance.CreateConfig(ref command);
                 config.settingName = settingName;
                 string jsonString = JsonConvert.SerializeObject(config, Formatting.Indented);
                 Action<string> SaveSetting = (string filePath) =>
@@ -215,7 +222,7 @@ namespace cdc.AssetWorkflow.Editor
                 };
 
                 string filePath = Path.Combine(
-                    EditorFileSystem.BundleOutputPath,
+                    EditorFileSystem.GetOutputPath(command.GetTrulyBuildTarget()),
                     settingName
                 );
                 SaveSetting(filePath);

@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace cdc.AssetWorkflow.Editor
 {
-    public static class EditorFileSystem
+    internal static class EditorFileSystem
     {
         /// <summary>
         /// 构建assetbundle的资源根目录，这是相对于Assets的目录
@@ -15,7 +15,7 @@ namespace cdc.AssetWorkflow.Editor
         /// <summary>
         /// asset bundle的输出目录(系统本地目录)
         /// </summary>
-        public static string BundleOutputPath => BuildSettingAsset.Instance.OutputPath;
+        public static string OutputPathBase => BuildSettingAsset.Instance.OutputPath;
 
         private static Regex m_dataPathReg = new Regex($@"^\b{Application.dataPath}\b[\\/]?");
         /// <summary>
@@ -87,6 +87,17 @@ namespace cdc.AssetWorkflow.Editor
                 Directory.Delete(_di.FullName, true);
             foreach (FileInfo fi in di.EnumerateFiles())
                 File.Delete(fi.FullName);
+        }
+
+        /// <summary>
+        /// asset bundle的输出目录(系统本地目录)
+        /// </summary>
+        public static string GetOutputPath(BuildTarget buildTarget)
+        {
+            return Path.Combine(
+                OutputPathBase,
+                PlatformMapping.GetAssetPlatform(buildTarget).ToString()
+            );
         }
     }
 }

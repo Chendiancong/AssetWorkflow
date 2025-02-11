@@ -96,12 +96,12 @@ namespace cdc.AssetWorkflow.Editor
             }
         }
 
-        public AssetMgrConfig CreateConfig()
+        public AssetMgrConfig CreateConfig(ref BuilderCommand cmd)
         {
             var config = new AssetMgrConfig();
             config.enablePatch = enablePatch;
             config.bundleRootPath = rootPath;
-            config.manifestName = Path.GetFileName(OutputPath.TrimEnd('/'));
+            config.manifestName = Path.GetFileName(EditorFileSystem.GetOutputPath(cmd.GetTrulyBuildTarget()));
             config.serverUrl = serverUrl;
             return config;
         }

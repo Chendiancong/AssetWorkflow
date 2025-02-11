@@ -62,14 +62,15 @@ namespace cdc.AssetWorkflow
             }
 
             string reqUrl = config.serverUrl.TrimEnd('/', '\\');
+            string platformDir = PlatformMapping.GetAssetPlatform(Application.platform).ToString();
             var differentAssets = new List<(string name, string version)>();
             {
                 // Update Version
                 profiler.ResetAndSetState(HotUpdateState.UpdateVersion);
-                Debugger.Log($"download ${reqUrl}/Version");
+                Debugger.Log($"download ${reqUrl}/{platformDir}/Version");
                 ConvertBytesToVersion(
                     curVersions,
-                    await Network.DownloadToMemoryAsync($"{reqUrl}/Version")
+                    await Network.DownloadToMemoryAsync($"{reqUrl}/{platformDir}/Version")
                 );
 
                 // Compare Version
@@ -99,7 +100,7 @@ namespace cdc.AssetWorkflow
                             if (!downloadedVersions.ContainsKey(assetName))
                             {
                                 string filePath = GetLocalSavePath(assetName);
-                                string url = $"{reqUrl}/{assetName}";
+                                string url = $"{reqUrl}/{platformDir}/{assetName}";
                                 Debugger.Log($"download {url}");
                                 await Network.DownloadToFileAsync(url, filePath);
                                 downloadedVersions[assetInfo.name] = assetInfo.version;

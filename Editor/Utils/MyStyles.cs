@@ -29,9 +29,6 @@ namespace cdc.AssetWorkflow
         {
             EditorGUILayout.BeginHorizontal();
             EditorGUILayout.PropertyField(sprop, content ?? null, options);
-            // bool hasTooltip = !string.IsNullOrEmpty(sprop.tooltip);
-            // if (hasTooltip && GUILayout.Button("?", GUILayout.Width(20)))
-            //     EditorUtility.DisplayDialog("Tooltip", sprop.tooltip, "OK");
             EditorGUILayout.EndHorizontal();
             return sprop.boolValue;
         }
