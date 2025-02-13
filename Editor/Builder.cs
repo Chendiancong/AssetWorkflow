@@ -106,6 +106,25 @@ namespace cdc.AssetWorkflow.Editor
             public void CollectAssets(string rootPath, List<AssetBundleBuild> list)
             {
                 var assetDic = new Dictionary<string, List<string>>();
+                var folderConfigs = new Dictionary<string, IFolderConfigure>();
+
+                Func<string, IFolderConfigure> GetConfig = localPath =>
+                {
+                    string dataPath = EditorFileSystem.LocalPathToDataPath(localPath);
+                    IFolderConfigure config;
+                    if (!folderConfigs.TryGetValue(dataPath, out config))
+                    {
+                        string configPath = $"{dataPath}/{Path.GetFileName(dataPath)}{AssetFolderConfigure.FileNameSuffix}";
+                        var asset = AssetDatabase.LoadAssetAtPath<AssetFolderConfigureAsset>(configPath);
+                        if (asset == null)
+                            folderConfigs[dataPath] = AssetFolderConfigureAsset.defaultConfig;
+                        else
+                            folderConfigs[dataPath] = asset;
+                        config = folderConfigs[dataPath];
+                    }
+                    return config;
+                };
+
                 list.Clear();
                 EditorFileSystem.WalkDataPath(
                     rootPath,
@@ -113,13 +132,31 @@ namespace cdc.AssetWorkflow.Editor
                     {
                         if (fInfo.Name.EndsWith(".meta"))
                             return;
+                        if (fInfo.Name.EndsWith(AssetFolderConfigure.FileNameSuffix))
+                            return;
                         List<string> assetNames;
-                        if (!assetDic.TryGetValue(dInfo.FullName, out assetNames))
+                        var folderConfig = GetConfig(dInfo.FullName);
+                        if (folderConfig.PackingLevel == AssetBundlePackingLevel.No)
+                            return;
+                        else
                         {
-                            assetNames = new List<string>();
-                            assetDic[dInfo.FullName] = assetNames;
+                            string key = null;
+                            switch (folderConfig.PackingLevel)
+                            {
+                                case AssetBundlePackingLevel.Normal:
+                                    key = dInfo.FullName;
+                                    break;
+                                case AssetBundlePackingLevel.Single:
+                                    key = fInfo.FullName;
+                                    break;
+                            }
+                            if (!assetDic.TryGetValue(key, out assetNames))
+                            {
+                                assetNames = new List<string>();
+                                assetDic[key] = assetNames;
+                            }
+                            assetNames.Add(fInfo.FullName);
                         }
-                        assetNames.Add(fInfo.FullName);
                     }
                 );
 

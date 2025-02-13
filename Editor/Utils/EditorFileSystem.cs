@@ -18,6 +18,7 @@ namespace cdc.AssetWorkflow.Editor
         public static string OutputPathBase => BuildSettingAsset.Instance.OutputPath;
 
         private static Regex m_dataPathReg = new Regex($@"^\b{Application.dataPath}\b[\\/]?");
+        private static Regex m_fileExtension = new Regex(@"\.[^\.]+$");
         /// <summary>
         /// 将本地路径转换为项目路径，即Assets/...，且统一以反斜杠位分隔符
         /// </summary>
@@ -34,6 +35,7 @@ namespace cdc.AssetWorkflow.Editor
         public static string LocalPathToAssetBundleName(string localPath)
         {
             localPath = localPath.Replace('\\', '/');
+            localPath = m_fileExtension.Replace(localPath, "");
             return m_dataPathReg
                 .Replace(localPath, "")
                 .Replace('/', '_');
