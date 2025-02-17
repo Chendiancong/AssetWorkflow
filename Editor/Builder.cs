@@ -85,18 +85,22 @@ namespace cdc.AssetWorkflow.Editor
             buildOption |= command.options;
 
             Debug.Log($"Distribute path is {targetPath}");
-            BuildPipeline.BuildAssetBundles(
-                targetPath,
-                list.ToArray(),
-                buildOption,
-                platform
-            );
+            try
+            {
+                BuildPipeline.BuildAssetBundles(
+                    targetPath,
+                    list.ToArray(),
+                    buildOption,
+                    platform
+                );
 
-            helper.GenerateAssetFileMap(list, ref command);
-            helper.GenerateSettingFile(ref command);
-            helper.GenerateAssetFileVersions(ref command);
+                helper.GenerateAssetFileMap(list, ref command);
+                helper.GenerateSettingFile(ref command);
+                helper.GenerateAssetFileVersions(ref command);
 
-            AssetDatabase.Refresh();
+                AssetDatabase.Refresh();
+            }
+            catch { throw; }
         }
 
         public class Helper

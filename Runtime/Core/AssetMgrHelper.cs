@@ -53,7 +53,6 @@ namespace cdc.AssetWorkflow
             profiler.ResetAndSetState(HotUpdateState.LoadLocalVersion);
             Dictionary<string, string> oldVersions = new Dictionary<string, string>();
             LoadFileToVersion(oldVersions);
-            await Task.Delay(100);
             if (!config.enablePatch)
             {
                 profiler.SetState(HotUpdateState.Success);
@@ -202,14 +201,18 @@ namespace cdc.AssetWorkflow
 
         private void InternalGetLocalLoadPath(string fileName, ref string localPath)
         {
-            localPath = Path.Combine(
-                AssetSavePath,
-                fileName
-            );
-            if (File.Exists(localPath))
-                return;
+            if (config.enablePatch)
+            {
+                localPath = Path.Combine(
+                    AssetSavePath,
+                    fileName
+                );
+                if (File.Exists(localPath))
+                    return;
+            }
             localPath = Path.Combine(
                 Application.streamingAssetsPath,
+                PlatformMapping.GetAssetPlatform(Application.platform).ToString(),
                 fileName
             );
         }

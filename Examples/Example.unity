@@ -377,6 +377,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a0a881377afe58c46bf5978f36bc27ca, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  prefabAsset:
+    m_assetPath: Assets/PackAssets/Sub/ManyCube.prefab
 --- !u!4 &436914584
 Transform:
   m_ObjectHideFlags: 0

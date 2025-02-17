@@ -43,6 +43,8 @@ namespace cdc.AssetWorkflow
         private Regex m_resourcesPrefix = new Regex(@"^Assets/Resources");
         public IAssetHandle MakeAsset(string assetName)
         {
+            if (string.IsNullOrEmpty(assetName))
+                throw new Exception("Empty asset name!");
             assetName = $"Assets/{assetName}";
             if (m_resourcesPrefix.IsMatch(assetName))
                 return MakeAssetFromResources(assetName).CastToHandle<IAssetHandle>();

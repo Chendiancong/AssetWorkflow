@@ -56,7 +56,7 @@ namespace cdc.AssetWorkflow.Editor
         /// <summary>
         /// asset bundle的输出目录(系统本地目录)
         /// </summary>
-        public string OutputPath => !useCustomOutputPath ?
+        public string OutputPath => !enablePatch || !useCustomOutputPath ?
             Application.streamingAssetsPath :
             customOutputPath;
 

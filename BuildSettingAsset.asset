@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   rootPath: PackAssets
   compressType: 2
-  enablePatch: 1
+  enablePatch: 0
   serverUrl: http://localhost:8080/game-asset
   useCustomOutputPath: 1
   customOutputPath: G:/TestWebServer/game-asset
