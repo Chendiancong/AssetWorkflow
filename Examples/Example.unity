@@ -378,7 +378,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   prefabAsset:
-    m_assetPath: Assets/PackAssets/Sub/ManyCube.prefab
+    m_assetPath: Assets/PackAssets/PrefabLoader.prefab
 --- !u!4 &436914584
 Transform:
   m_ObjectHideFlags: 0

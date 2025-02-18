@@ -1,3 +1,6 @@
+using System;
+using System.Linq;
+using System.Reflection;
 using UnityEditor;
 using UnityEngine;
 
@@ -73,23 +76,43 @@ namespace cdc.AssetWorkflow.Editor
 
         private struct AssetRefWrapper
         {
+            public SerializedProperty mainProp;
             public SerializedProperty assetPathProp;
+            public bool modified;
 
             public string AssetPath
             {
                 get => assetPathProp.stringValue;
-                set => assetPathProp.stringValue = value;
+                set
+                {
+                    assetPathProp.stringValue = value;
+
+                    UnityEngine.Object targetObj = mainProp.serializedObject.targetObject;
+                    Type type = targetObj.GetType();
+                    var methods = type.GetMethods(BindingFlags.Instance|BindingFlags.DeclaredOnly|BindingFlags.Public|BindingFlags.NonPublic)
+                        .Where(m => m.GetCustomAttribute<OnAssetRefPathChangeAttribute>() != null);
+                    var args = new object[] { value };
+                    foreach (var method in methods)
+                        method.Invoke(targetObj, args);
+                }
             }
 
             public AssetRefWrapper(SerializedProperty property)
             {
+                mainProp = property;
                 assetPathProp = property.FindPropertyRelative("m_assetPath");
+                modified = false;
             }
 
             public T GetAsset<T>()
                 where T : UnityEngine.Object
             {
                 return (T)AssetDatabase.LoadAssetAtPath(assetPathProp.stringValue, typeof(T));
+            }
+
+            public void CallChangeIfModified()
+            {
+                UnityEngine.Object targetObj = mainProp.serializedObject.targetObject;
             }
         }
     }

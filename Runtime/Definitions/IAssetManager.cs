@@ -12,7 +12,7 @@ namespace cdc.AssetWorkflow
         /// <summary>
         /// 获取一个资源句柄，需要注意的是，您只能加载Resources或者是被打包到AssetBundle中的资源。
         /// </summary>
-        /// <param name="assetPath">资源在dataPath中的相对位置</param>
+        /// <param name="assetPath">资源在Assets目录中的相对位置</param>
         /// <returns></returns>
         IAssetHandle MakeAsset(string assetPath);
         void DebugInfo(bool flag);

@@ -9,16 +9,14 @@ namespace cdc.AssetWorkflow.Editor
     {
         public static string FileNameSuffix => "_folderconfig.asset";
 
-        [MenuItem("Assets/Asset Folder Configure", true)]
-        private static bool ValidateConfigureFolder()
+        public static bool ValidateConfigureFolder()
         {
             string path = AssetDatabase.GetAssetPath(Selection.activeObject);
-            Debug.Log($"{path}.StartsWith(Assets/{EditorFileSystem.BundleRootPath}) = {path.StartsWith($"Assets/{EditorFileSystem.BundleRootPath}")}");
+            // Debug.Log($"{path}.StartsWith(Assets/{EditorFileSystem.BundleRootPath}) = {path.StartsWith($"Assets/{EditorFileSystem.BundleRootPath}")}");
             return path.StartsWith($"Assets/{EditorFileSystem.BundleRootPath}");
         }
 
-        [MenuItem("Assets/Asset Folder Configure", false, 20)]
-        private static void OpenWindow()
+        public static void OpenWindow()
         {
             string path = AssetDatabase.GetAssetPath(Selection.activeObject);
             AssetFolderConfigureWindow.ShowWindow(GetConfig(path));
