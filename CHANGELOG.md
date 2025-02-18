@@ -11,3 +11,6 @@
   - No 该目录不打包
   - Normal 该目录打包成一个assetbundle
   - Single 该目录下每一个文件都是一个单独的assetbundle
+- 新增AssetRef类，支持在编辑器中对资源拖拽配置
+- 新增AssetKeeper类，支持对资源的引用计数的自动增减
+- 新增一些基于AssetRef工作流的元件
