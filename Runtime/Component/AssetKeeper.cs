@@ -26,7 +26,7 @@ namespace cdc.AssetWorkflow
         }
 
         /// <summary>
-        /// Associate specific AssetHandles with GameObjects, let them to be released  with the lifecycle of the GameObject
+        /// Associate specific AssetHandle with GameObjects, let them to be released  with the lifecycle of the GameObject
         /// </summary>
         /// <returns></returns>
         public static AssetKeeper Link(IAssetHandle handle, GameObject obj, AssetKeeper curKeeper = null)
@@ -35,6 +35,11 @@ namespace cdc.AssetWorkflow
                 curKeeper = obj.AddComponent<AssetKeeper>();
             curKeeper.SetHandle(handle);
             return curKeeper;
+        }
+
+        public static AssetKeeper Link(AssetRef assetRef, GameObject obj, AssetKeeper curKeeper = null)
+        {
+            return Link(assetRef.Handle, obj, curKeeper);
         }
     }
 }

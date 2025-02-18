@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using UnityEditor;
 using UnityEngine;
 
 namespace cdc.AssetWorkflow
@@ -45,12 +46,16 @@ namespace cdc.AssetWorkflow
         {
             if (string.IsNullOrEmpty(assetName))
                 throw new Exception("Empty asset name!");
-            assetName = $"Assets/{assetName}";
+            if (!assetName.StartsWith("Assets/"))
+                assetName = $"Assets/{assetName}";
+#if UNITY_EDITOR
+            return new EditorAsset(assetName);
+#else
             if (m_resourcesPrefix.IsMatch(assetName))
                 return MakeAssetFromResources(assetName).CastToHandle<IAssetHandle>();
             else
                 return MakeAssetFromBundle(assetName).CastToHandle<IAssetHandle>();
-
+#endif
         }
 
         private IBaseAsset MakeAssetFromResources(string assetName)

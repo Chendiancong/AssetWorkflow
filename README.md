@@ -8,7 +8,11 @@ AssetWorkow旨在为Unity开发者提供一个一站式资源管理框架，包�
 3. 也可以直接作为子模块添加到Assets目录下，这样在使用的同时也可以对他进行修改
 
 ## 使用
-- 工具栏Asset Workflow->Operation中可以进行配置和构建。
+- **工具栏Asset Workflow->Operation**中可以进行配置和构建。
+- 使用**AssetRef**类可以更加灵活的设置资源的引用
+- 使用**AssetKeeper**类可以**关联一个GameObject和一个IAssetHandle对象**，通过GameObject的生命周期自动调整资源的引用技术
+- 在**Project视图中，右键->Asset Workflow->Folder Configure**，可以调整该文件夹构建AssetBundle的策略，您只能选择在Operation窗口中设置好的RootPath之下的目录进行配置
+- 在**Hierarchy视图中，右键->Asset Workflow**，可以选择创建基于**AssetRef**工作流的各类元件
 
 ## AssetBundle构建过程
 - 指定一个根目录，在根目录中以文件夹为单位构建ab包到指定目录。

@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using cdc.AssetWorkflow;
 using UnityEngine;
 
@@ -12,9 +13,19 @@ public class AssetMgrInitExample : MonoBehaviour
             m_assetMgr = Facade.AssetMgr;
             await m_assetMgr.Initial();
         }
-        // var handle = m_assetMgr.MakeAsset("PackAssets/Sub/ManyCube.prefab");
-        // var prefab = await handle.Cast<GameObject>();
-        // Instantiate(prefab);
+
+        await Load2();
+    }
+
+    private async Task Load1()
+    {
+        var handle = m_assetMgr.MakeAsset("PackAssets/Sub/ManyCube.prefab");
+        var prefab = await handle.Cast<GameObject>();
+        Instantiate(prefab);
+    }
+
+    private async Task Load2()
+    {
         var prefab = await prefabAsset.Handle.Cast<GameObject>();
         Instantiate(prefab);
     }
