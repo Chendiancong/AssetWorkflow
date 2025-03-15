@@ -29,8 +29,16 @@ namespace cdc.AssetWorkflow.Editor
             }
             position.y += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
 
-            EditorGUI.PropertyField(position, wrapper.assetPathProp, MyStyles.GetContent("AssetPath"));
+            string newPath = EditorGUI.TextField(position, MyStyles.GetContent("AssetPath"), wrapper.AssetPath);
             position.y += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
+
+            EditorGUI.BeginDisabledGroup(true);
+            EditorGUI.TextField(position, MyStyles.GetContent("AssetGUID"), wrapper.AssetGUID);
+            position.y += EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
+            EditorGUI.EndDisabledGroup();
+
+            if (!wrapper.AssetPath.StrEquals(newPath))
+                wrapper.AssetPath = newPath;
 
             if (!IsValidAssetPath(wrapper.AssetPath))
             {
@@ -59,7 +67,7 @@ namespace cdc.AssetWorkflow.Editor
         {
             float lineHeight = EditorGUIUtility.singleLineHeight + EditorGUIUtility.standardVerticalSpacing;
             var wrapper = new AssetRefWrapper(property);
-            int lines = 3;
+            int lines = 4;
             if (!IsValidAssetPath(wrapper.AssetPath))
             {
                 lines += 1;
@@ -78,7 +86,7 @@ namespace cdc.AssetWorkflow.Editor
         {
             public SerializedProperty mainProp;
             public SerializedProperty assetPathProp;
-            public bool modified;
+            public SerializedProperty assetGUIDProp;
 
             public string AssetPath
             {
@@ -86,33 +94,35 @@ namespace cdc.AssetWorkflow.Editor
                 set
                 {
                     assetPathProp.stringValue = value;
+                    assetGUIDProp.stringValue = AssetDatabase.AssetPathToGUID(value);
 
-                    UnityEngine.Object targetObj = mainProp.serializedObject.targetObject;
-                    Type type = targetObj.GetType();
-                    var methods = type.GetMethods(BindingFlags.Instance|BindingFlags.DeclaredOnly|BindingFlags.Public|BindingFlags.NonPublic)
-                        .Where(m => m.GetCustomAttribute<OnAssetRefPathChangeAttribute>() != null);
-                    var args = new object[] { value };
-                    foreach (var method in methods)
-                        method.Invoke(targetObj, args);
+                    if (!string.IsNullOrEmpty(assetGUIDProp.stringValue))
+                    {
+                        UnityEngine.Object targetObj = mainProp.serializedObject.targetObject;
+                        Type type = targetObj.GetType();
+                        var methods = type.GetMethods(BindingFlags.Instance|BindingFlags.DeclaredOnly|BindingFlags.Public|BindingFlags.NonPublic)
+                            .Where(m => m.GetCustomAttribute<OnAssetRefPathChangeAttribute>() != null);
+                        var args = new object[] { value };
+                        foreach (var method in methods)
+                            method.Invoke(targetObj, args);
+                    }
                 }
             }
+
+            public string AssetGUID => assetGUIDProp.stringValue;
 
             public AssetRefWrapper(SerializedProperty property)
             {
                 mainProp = property;
                 assetPathProp = property.FindPropertyRelative("m_assetPath");
-                modified = false;
+                assetGUIDProp = property.FindPropertyRelative("m_assetGUID");
+                assetPathProp.stringValue = AssetDatabase.GUIDToAssetPath(assetGUIDProp.stringValue);
             }
 
             public T GetAsset<T>()
                 where T : UnityEngine.Object
             {
-                return (T)AssetDatabase.LoadAssetAtPath(assetPathProp.stringValue, typeof(T));
-            }
-
-            public void CallChangeIfModified()
-            {
-                UnityEngine.Object targetObj = mainProp.serializedObject.targetObject;
+                return (T)AssetDatabase.LoadAssetAtPath(AssetPath, typeof(T));
             }
         }
     }

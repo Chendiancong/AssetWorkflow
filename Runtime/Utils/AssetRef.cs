@@ -10,6 +10,8 @@ namespace cdc.AssetWorkflow
 
         [UnityEngine.SerializeField]
         private string m_assetPath;
+        [UnityEngine.SerializeField]
+        private string m_assetGUID;
 
         public string AssetPath => m_assetPathPrefix.Replace(m_assetPath, "");
         public IAssetHandle Handle => Facade.AssetMgr.MakeAsset(AssetPath);
