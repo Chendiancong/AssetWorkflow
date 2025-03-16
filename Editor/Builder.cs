@@ -37,12 +37,14 @@ namespace cdc.AssetWorkflow.Editor
             helper.CollectAssets(EditorFileSystem.BundleRootPath, list);
             helper.GenerateAssetFileMap(list, ref command);
             helper.GenerateAssetFileVersions(ref command);
+            helper.GenerateAssetExtraInfoFile(ref command);
             AssetDatabase.Refresh();
         }
 
         public static void GenerateAssetFileVersions(BuilderCommand command = default)
         {
             helper.GenerateAssetFileVersions(ref command);
+            helper.GenerateAssetExtraInfoFile(ref command);
             AssetDatabase.Refresh();
         }
 
@@ -50,6 +52,7 @@ namespace cdc.AssetWorkflow.Editor
         {
             helper.GenerateSettingFile(ref command);
             helper.GenerateAssetFileVersions(ref command);
+            helper.GenerateAssetExtraInfoFile(ref command);
             AssetDatabase.Refresh();
         }
 
@@ -97,6 +100,7 @@ namespace cdc.AssetWorkflow.Editor
                 helper.GenerateAssetFileMap(list, ref command);
                 helper.GenerateSettingFile(ref command);
                 helper.GenerateAssetFileVersions(ref command);
+                helper.GenerateAssetExtraInfoFile(ref command);
 
                 AssetDatabase.Refresh();
             }
@@ -214,6 +218,7 @@ namespace cdc.AssetWorkflow.Editor
                 Debug.Log("Mapping file generated successfully.");
             }
 
+            private Regex m_ignoreEnd = new Regex(@"\.(meta|manifest)$", RegexOptions.IgnoreCase);
             public void GenerateAssetFileVersions(ref BuilderCommand command)
             {
                 string filePath = Path.Combine(
@@ -223,12 +228,11 @@ namespace cdc.AssetWorkflow.Editor
                 if (File.Exists(filePath))
                     File.Delete(filePath);
                 var sb = new StringBuilder();
-                var ignoreEnd = new Regex(@"\.(meta|manifest)$", RegexOptions.IgnoreCase);
                 EditorFileSystem.WalkDirectory(
                     EditorFileSystem.GetOutputPath(command.GetTrulyBuildTarget()),
                     (di, fi) => {
                         // 不需要计算meta文件和manifest文件
-                        if (ignoreEnd.IsMatch(fi.Name))
+                        if (m_ignoreEnd.IsMatch(fi.Name))
                             return;
                         string md5Hash = null;
                         Crypto.FromFileToMD5(ref md5Hash, fi.FullName);
@@ -241,6 +245,31 @@ namespace cdc.AssetWorkflow.Editor
                     writer.Write(sb.ToString());
                 }
                 Debug.Log("Version file generated successfully.");
+            }
+
+            public void GenerateAssetExtraInfoFile(ref BuilderCommand command)
+            {
+                var filePath = Path.Combine(
+                    EditorFileSystem.GetOutputPath(command.GetTrulyBuildTarget()),
+                    "ExtraInfo"
+                );
+                if (File.Exists(filePath))
+                    File.Delete(filePath);
+                var sb = new StringBuilder();
+                EditorFileSystem.WalkDirectory(
+                    EditorFileSystem.GetOutputPath(command.GetTrulyBuildTarget()),
+                    (_, fi) => {
+                        // 不需要计算meta文件和manifest文件
+                        if (m_ignoreEnd.IsMatch(fi.FullName))
+                            return;
+                        sb.AppendLine($"{fi.Name}:{fi.Length}");
+                    }
+                );
+                using (var writer = new StreamWriter(filePath))
+                {
+                    writer.Write(sb.ToString());
+                }
+                Debug.Log("Extra info file generated successfully!");
             }
 
             public void GenerateSettingFile(ref BuilderCommand command)
