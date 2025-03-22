@@ -262,7 +262,12 @@ namespace cdc.AssetWorkflow.Editor
                         // 不需要计算meta文件和manifest文件
                         if (m_ignoreEnd.IsMatch(fi.FullName))
                             return;
-                        sb.AppendLine($"{fi.Name}:{fi.Length}");
+                        var extraInfo = new FileExtraInfo()
+                        {
+                            fileName = fi.Name,
+                            size = fi.Length
+                        };
+                        sb.AppendLine(extraInfo.ToStorageStr());
                     }
                 );
                 using (var writer = new StreamWriter(filePath))

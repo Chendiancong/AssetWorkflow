@@ -84,6 +84,21 @@ namespace cdc.AssetWorkflow
                 profiler.ResetAndSetState(HotUpdateState.UpdateAsset);
                 if (differentAssets.Count > 0)
                 {
+                    await Network.DownloadToFileAsync(
+                        $"{reqUrl}/{platformDir}/ExtraInfo",
+                        GetLocalSavePath("ExtraInfo")
+                    );
+                    var extraInfos = new Dictionary<string, FileExtraInfo>();
+                    LoadFileToExtraInfos(extraInfos, "ExtraInfo");
+
+                    long totalBytes = 0;
+                    foreach (var diff in differentAssets)
+                    {
+                        if (extraInfos.ContainsKey(diff.name))
+                            totalBytes += extraInfos[diff.name].size;
+                    }
+                    Debugger.Log($"total download byte:{totalBytes}B");
+
                     var downloadedVersions = new Dictionary<string, string>();
                     string tempVerFileName = "Version_downloaded";
                     // 保证从储存目录加载临时版本文件
@@ -138,6 +153,18 @@ namespace cdc.AssetWorkflow
                     if (sections.Length != 2)
                         return;
                     outVersions[sections[0]] = sections[1];
+                }
+            );
+        }
+
+        private async void LoadFileToExtraInfos(Dictionary<string, FileExtraInfo> extraInfos, string fileName = "ExtraInfo")
+        {
+            string filePath = GetLocalLoadPath(fileName);
+            await FileSystem.ReadFileLineByLine(
+                filePath,
+                line => {
+                    var info = FileExtraInfo.FromStorageStr(line);
+                    extraInfos[info.fileName] = info;
                 }
             );
         }
