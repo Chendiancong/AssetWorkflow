@@ -47,6 +47,22 @@ namespace cdc.AssetWorkflow
             await File.WriteAllBytesAsync(filePath, contents);
         }
 
+        private static string[] m_sizeTags = new string[]
+        {
+            "B", "kB", "MB", "GB"
+        };
+        public static string ConvertFileSizeToString(long size)
+        {
+            int order = 0;
+            while (size >= 1024 && order < m_sizeTags.Length - 1)
+            {
+                order++;
+                size = size / 1024;
+            }
+
+            return $"{size:0.##} {m_sizeTags[order]}";
+        }
+
         private static Regex m_urlLike = new Regex(@"^[^/]+://.+$");
         private static bool IsUrlLike(string path) =>
             m_urlLike.IsMatch(path);

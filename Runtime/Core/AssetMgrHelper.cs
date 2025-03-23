@@ -13,6 +13,10 @@ namespace cdc.AssetWorkflow
         public Dictionary<string, string> localPathRecord = new Dictionary<string, string>();
         public Dictionary<string, string> assetMap = new Dictionary<string, string>();
         public AssetMgrConfig config;
+        /// <summary>
+        /// 热更分析器，分析器在热更过程中会被动态改变，
+        /// 可以通过分析器访问热更时的各种状态 
+        /// </summary>
         public HotUpdateProfiler hotUpdateProfiler = new HotUpdateProfiler
         {
             state = HotUpdateState.Initial
@@ -97,7 +101,8 @@ namespace cdc.AssetWorkflow
                         if (extraInfos.ContainsKey(diff.name))
                             totalBytes += extraInfos[diff.name].size;
                     }
-                    Debugger.Log($"total download byte:{totalBytes}B");
+                    profiler.SetTotalBytes(totalBytes);
+                    Debugger.Log($"total size to download: {FileSystem.ConvertFileSizeToString(totalBytes)}");
 
                     var downloadedVersions = new Dictionary<string, string>();
                     string tempVerFileName = "Version_downloaded";
@@ -108,6 +113,7 @@ namespace cdc.AssetWorkflow
                         Directory.CreateDirectory(AssetSavePath);
                     using (StreamWriter writer = new StreamWriter(GetLocalSavePath(tempVerFileName), true))
                     {
+                        FileExtraInfo exInfo;
                         foreach ((string name, string version) assetInfo in differentAssets)
                         {
                             string assetName = ConvertIfBundleName(assetInfo.name);
@@ -119,6 +125,8 @@ namespace cdc.AssetWorkflow
                                 await Network.DownloadToFileAsync(url, filePath);
                                 downloadedVersions[assetInfo.name] = assetInfo.version;
                                 localPathRecord[assetName] = filePath;
+                                if (extraInfos.TryGetValue(assetInfo.name, out exInfo))
+                                    profiler.AddDownloadedBytes(exInfo.size);
                                 // 持续记录已经下载的文件，支持端点续传
                                 writer.WriteLine($"{assetInfo.name}:{assetInfo.version}");
                             }
@@ -136,7 +144,7 @@ namespace cdc.AssetWorkflow
                 LoadSetting();
             }
 
-            profiler.ResetAndSetState(HotUpdateState.Success);
+            profiler.SetState(HotUpdateState.Success);
             Debugger.Log("hot update finished");
         }
 
@@ -284,13 +292,24 @@ namespace cdc.AssetWorkflow
         public struct HotUpdateProfiler
         {
             public HotUpdateState state;
-            public float downloadProgress;
-            public ulong downloadedBytes;
+            public long totalBytes;
+            public long downloadedBytes;
             public float downloadSpeed;
+
+            public string TotalBytesStr =>
+                FileSystem.ConvertFileSizeToString(totalBytes);
+
+            public string DownloadedBytesStr =>
+                FileSystem.ConvertFileSizeToString(downloadedBytes);
+
+            public float DownloadProgress =>
+                downloadedBytes / totalBytes;
+
+            public string DownloadProgressStr =>
+                $"{DownloadProgress:0.##}";
 
             public void Reset()
             {
-                downloadProgress = 0f;
                 downloadedBytes = 0;
                 downloadSpeed = 0f;
             }
@@ -305,6 +324,16 @@ namespace cdc.AssetWorkflow
             {
                 Reset();
                 SetState(state);
+            }
+
+            public void SetTotalBytes(long bytes)
+            {
+                totalBytes = bytes;
+            }
+
+            public void AddDownloadedBytes(long bytes)
+            {
+                downloadedBytes += bytes;
             }
         }
 
