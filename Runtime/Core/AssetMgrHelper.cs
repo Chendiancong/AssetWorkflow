@@ -1,9 +1,11 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using UnityEngine;
+using UnityEngine.Networking;
 
 namespace cdc.AssetWorkflow
 {
@@ -111,6 +113,7 @@ namespace cdc.AssetWorkflow
                     LoadFileToVersion(downloadedVersions, tempVerFileName);
                     if (!Directory.Exists(AssetSavePath))
                         Directory.CreateDirectory(AssetSavePath);
+                    
                     using (StreamWriter writer = new StreamWriter(GetLocalSavePath(tempVerFileName), true))
                     {
                         FileExtraInfo exInfo;

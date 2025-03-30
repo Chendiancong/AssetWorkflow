@@ -27,10 +27,102 @@ namespace cdc.AssetWorkflow
             }
         }
 
+        public static async ValueTask DownloadAsyncKeepingCheck<T>(string url, T downloadHandler = default, Action<T> onSection = default, Action<T> onComplete = default)
+            where T : DownloadHandler
+        {
+            using (UnityWebRequest request = UnityWebRequest.Get(url))
+            {
+                request.downloadHandler = downloadHandler;
+                var pending = Pending.Create();
+                m_pendings[request.GetHashCode()] = pending;
+                UnityWebRequestAsyncOperation operation = request.SendWebRequest();
+                operation.completed += OnRequestComplete;
+                do
+                {
+                    onSection?.Invoke(request.downloadHandler as T);
+                    if (!request.isDone)
+                        await Task.Delay(500);
+                } while (false);
+
+                bool isOk = await pending.tsc.Task;
+                if (!isOk)
+                    throw new Exception($"Download {url} failed: {request.error}!");
+                onComplete?.Invoke(request.downloadHandler as T);
+            }
+        }
+
         public static ValueTask DownloadToFileAsync(string url, string savePath)
         {
             return DownloadAsync(url, new DownloadHandlerFile(savePath));
         }
+
+        // public static async ValueTask DownloadToFileAsync2(string url, string savePath)
+        // {
+        //     using (UnityWebRequest request = UnityWebRequest.Get(url))
+        //     {
+        //         var downloadHandler = new DownloadHandlerFile(savePath);
+        //         request.downloadHandler = downloadHandler;
+
+        //         var pending = Pending.Create();
+        //         m_pendings[request.GetHashCode()] = pending;
+
+        //         // Variables for tracking progress
+        //         long totalBytes = 0;
+        //         long downloadedBytes = 0;
+        //         DateTime startTime = DateTime.Now;
+        //         DateTime lastUpdateTime = DateTime.Now;
+
+        //         // Setup progress tracking
+        //         request.SendWebRequest();
+        //         while (!request.isDone)
+        //         {
+        //             if (totalBytes == 0 && request.downloadedBytes > 0)
+        //             {
+        //                 totalBytes = request.downloadedBytes;
+        //             }
+
+        //             downloadedBytes = request.downloadedBytes;
+
+        //             // Calculate download speed (bytes per second)
+        //             TimeSpan elapsed = DateTime.Now - startTime;
+        //             double downloadSpeed = elapsed.TotalSeconds > 0 ? downloadedBytes / elapsed.TotalSeconds : 0;
+
+        //             // Update stats every second
+        //             if ((DateTime.Now - lastUpdateTime).TotalSeconds >= 1)
+        //             {
+        //                 lastUpdateTime = DateTime.Now;
+        //                 Debug.Log($"Download progress: {downloadedBytes}/{totalBytes} bytes " +
+        //                         $"({(totalBytes > 0 ? (float)downloadedBytes/totalBytes*100 : 0):F1}%) " +
+        //                         $"Speed: {FormatBytes(downloadSpeed)}/s");
+        //             }
+
+        //             await Task.Yield();
+        //         }
+
+        //         // Final update
+        //         TimeSpan totalElapsed = DateTime.Now - startTime;
+        //         double averageSpeed = totalElapsed.TotalSeconds > 0 ? downloadedBytes / totalElapsed.TotalSeconds : 0;
+        //         Debug.Log($"Download completed: {downloadedBytes} bytes in {totalElapsed.TotalSeconds:F2}s " +
+        //                 $"(Average speed: {FormatBytes(averageSpeed)}/s)");
+
+        //         if (request.result != UnityWebRequest.Result.Success)
+        //         {
+        //             throw new Exception($"Download {url} failed: {request.error}");
+        //         }
+        //     }
+        // }
+
+        // private static string FormatBytes(double bytes)
+        // {
+        //     string[] suffixes = { "B", "KB", "MB", "GB" };
+        //     int suffixIndex = 0;
+        //     while (bytes >= 1024 && suffixIndex < suffixes.Length - 1)
+        //     {
+        //         bytes /= 1024;
+        //         suffixIndex++;
+        //     }
+        //     return $"{bytes:F2} {suffixes[suffixIndex]}";
+        // }
 
         public static async ValueTask<byte[]> DownloadToMemoryAsync(string url)
         {
