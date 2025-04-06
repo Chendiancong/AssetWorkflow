@@ -14,10 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   rootPath: PackAssets
   compressType: 2
-  enablePatch: 0
+  enablePatch: 1
   serverUrl: http://localhost:8080/game-asset
   useCustomOutputPath: 1
   customOutputPath: G:/TestWebServer/game-asset
-  useCustomBuildTarget: 1
+  useCustomBuildTarget: 0
   buildTarget: -2
-  operationType: 1
+  operationType: 2

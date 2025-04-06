@@ -1,5 +1,6 @@
 using System.IO;
 using UnityEditor;
+using UnityEditor.EditorTools;
 using UnityEngine;
 
 namespace cdc.AssetWorkflow.Editor
@@ -59,6 +60,16 @@ namespace cdc.AssetWorkflow.Editor
         public string OutputPath => !enablePatch || !useCustomOutputPath ?
             Application.streamingAssetsPath :
             customOutputPath;
+        /// <summary>
+        /// 使用内置的资源服务器进行测试
+        /// </summary>
+        [Tooltip("是否使用内置的资源服务器进行测试")]
+        public bool useInternalAssetServer = false;
+        /// <summary>
+        /// 内置资源服务器的根目录
+        /// </summary>
+        [Tooltip("内置资源服务器的根目录")]
+        public string testServerRoot = "";
 
         private static BuildSettingAsset m_instance;
         public static BuildSettingAsset Instance

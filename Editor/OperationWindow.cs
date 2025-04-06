@@ -1,5 +1,4 @@
 using System.IO;
-using Codice.Client.GameUI.Checkin.DifferencesApplier;
 using UnityEditor;
 using UnityEngine;
 
@@ -50,6 +49,7 @@ namespace cdc.AssetWorkflow.Editor
             }
 
             EnumOperation();
+            HandleTestServer();
 
             m_settingObj.ApplyModifiedProperties();
         }
@@ -87,6 +87,18 @@ namespace cdc.AssetWorkflow.Editor
                             });
                             break;
                     }
+                }
+            }
+        }
+
+        private void HandleTestServer()
+        {
+            if (MyStyles.ToggleField(m_settingObj.FindProperty("useInternalAssetServer"), null))
+            {
+                EditorGUILayout.PropertyField(m_settingObj.FindProperty("testServerRoot"));
+                if (GUILayout.Button(MyStyles.GetContent("Start Server"), m_maxWidth_100))
+                {
+                    
                 }
             }
         }
